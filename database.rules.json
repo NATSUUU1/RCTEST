@@ -1,0 +1,9 @@
+{
+  "rules": {
+    ".read": true,
+    ".write": "auth != null",
+    "monitoring": {
+      ".validate": "newData.hasChildren(['suhu', 'kelembapan', 'gas', 'jarak'])"
+    }
+  }
+}
