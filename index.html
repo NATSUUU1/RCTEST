@@ -1,1229 +1,451 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>PinkSense Outdoor Monitor</title>
-
-<!-- Firebase -->
-<script type="module">
-import { initializeApp }
-from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-
-import {
-    getDatabase,
-    ref,
-    onValue
-}
-from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-
-
-/* =====================================================
-   FIREBASE
-===================================================== */
-
-const firebaseConfig = {
-    databaseURL:
-    "https://rc-telementri-default-rtdb.asia-southeast1.firebasedatabase.app"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-
-
-/* =====================================================
-   ELEMENT
-===================================================== */
-
-const $ = id => document.getElementById(id);
-
-const gas       = $("gas");
-const humidity  = $("humidity");
-const temp      = $("temperature");
-const distance  = $("distance");
-
-const robot     = $("robot");
-const buzzer    = $("buzzer");
-
-const system    = $("systemStatus");
-const updated   = $("lastUpdate");
-const firebase  = $("firebaseStatus");
-
-
-/* =====================================================
-   REALTIME SENSOR
-   Tidak menggunakan polling.
-===================================================== */
-
-const sensorRef = ref(db, "Sensor");
-
-onValue(sensorRef, snapshot => {
-
-    const data = snapshot.val();
-
-    if (!data) return;
-
-
-    /* ==========================
-       SENSOR DATA
-    ========================== */
-
-    const gasValue =
-        Number(data.Gas) || 0;
-
-    const humidityValue =
-        Number(data.Kelembapan) || 0;
-
-    const temperatureValue =
-        Number(data.Suhu) || 0;
-
-    const distanceValue =
-        Number(data.Jarak) || 0;
-
-
-    /* ==========================
-       UPDATE ANGKA
-       Langsung ke DOM
-    ========================== */
-
-    gas.textContent =
-        gasValue.toFixed(0);
-
-    humidity.textContent =
-        humidityValue.toFixed(1) + "%";
-
-    temp.textContent =
-        temperatureValue.toFixed(1) + "°";
-
-    distance.textContent =
-        distanceValue.toFixed(1) + " cm";
-
-
-    /* ==========================
-       STATUS ROBOT
-    ========================== */
-
-    if (
-        distanceValue > 0 &&
-        distanceValue < 25
-    ) {
-
-        robot.textContent = "Menghindar";
-        robot.className = "status danger";
-
-    } else {
-
-        robot.textContent = "Aman / Maju";
-        robot.className = "status safe";
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RC Car Monitor - IoT Dashboard</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
-
-
-    /* ==========================
-       BUZZER
-    ========================== */
-
-    if (
-        gasValue > 2000 ||
-        humidityValue > 80
-    ) {
-
-        buzzer.textContent = "AKTIF";
-        buzzer.className = "status danger";
-
-        system.textContent = "PERINGATAN";
-        system.className = "system warning";
-
-    } else {
-
-        buzzer.textContent = "Standby";
-        buzzer.className = "status safe";
-
-        system.textContent = "Sistem Normal";
-        system.className = "system online";
-
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #ffe6ea 0%, #ffb3c6 100%);
+      min-height: 100vh;
+      padding: 20px;
     }
-
-
-    /* ==========================
-       UPDATE TIME
-    ========================== */
-
-    const now = new Date();
-
-    updated.textContent =
-        now.toLocaleTimeString(
-            "id-ID",
-            {
-                hour: "2-digit",
-                minute: "2-digit",
-                second: "2-digit"
-            }
-        );
-
-});
-
-
-/* =====================================================
-   FIREBASE CONNECTION
-===================================================== */
-
-const connectionRef =
-    ref(db, ".info/connected");
-
-onValue(connectionRef, snapshot => {
-
-    const connected =
-        snapshot.val() === true;
-
-    if (connected) {
-
-        firebase.textContent =
-            "● Terhubung realtime";
-
-        firebase.className =
-            "connected";
-
-    } else {
-
-        firebase.textContent =
-            "○ Offline";
-
-        firebase.className =
-            "disconnected";
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
     }
-
-});
-
-</script>
-
-
-<style>
-
-/* =====================================================
-   PINK SOFT COLOR PALETTE
-===================================================== */
-
-:root {
-
-    --background: #fff7fb;
-
-    --card: #ffffff;
-
-    --pink: #f48fb1;
-    --pink-dark: #e56b99;
-    --pink-light: #ffd6e5;
-
-    --text: #5d4651;
-    --muted: #a58c97;
-
-    --green: #78cbb2;
-    --yellow: #efbd67;
-    --red: #ed7197;
-
-    --border: #f3dce6;
-
-}
-
-
-/* =====================================================
-   RESET
-===================================================== */
-
-* {
-    box-sizing: border-box;
-}
-
-html {
-    scroll-behavior: smooth;
-}
-
-body {
-
-    margin: 0;
-
-    background:
-        linear-gradient(
-            180deg,
-            #fff9fc 0%,
-            #fff4f8 100%
-        );
-
-    color: var(--text);
-
-    font-family:
-        Arial,
-        Helvetica,
-        sans-serif;
-}
-
-
-/* =====================================================
-   APP
-===================================================== */
-
-.app {
-
-    width: min(
-        1200px,
-        calc(100% - 28px)
-    );
-
-    margin: auto;
-
-    padding:
-        18px
-        0
-        30px;
-}
-
-
-/* =====================================================
-   HEADER
-===================================================== */
-
-.header {
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content:
-        space-between;
-
-    gap: 15px;
-
-    margin-bottom: 16px;
-
-}
-
-
-.brand {
-
-    display: flex;
-
-    align-items: center;
-
-    gap: 12px;
-}
-
-
-.logo {
-
-    width: 45px;
-    height: 45px;
-
-    display: grid;
-
-    place-items: center;
-
-    border-radius: 14px;
-
-    background:
-        var(--pink-light);
-
-    color:
-        var(--pink-dark);
-
-    font-size: 22px;
-}
-
-
-.title {
-
-    font-size: 20px;
-
-    font-weight: 700;
-
-    letter-spacing: -.4px;
-}
-
-
-.subtitle {
-
-    margin-top: 3px;
-
-    font-size: 11px;
-
-    color:
-        var(--muted);
-}
-
-
-.connection {
-
-    text-align: right;
-
-    font-size: 11px;
-
-}
-
-
-.connected {
-
-    color:
-        var(--green);
-
-    font-weight: 700;
-}
-
-
-.disconnected {
-
-    color:
-        var(--red);
-
-    font-weight: 700;
-}
-
-
-/* =====================================================
-   SYSTEM BAR
-===================================================== */
-
-.system-bar {
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content:
-        space-between;
-
-    gap: 10px;
-
-    padding:
-        12px 15px;
-
-    margin-bottom: 12px;
-
-    background:
-        var(--card);
-
-    border:
-        1px solid
-        var(--border);
-
-    border-radius: 14px;
-
-}
-
-
-.system {
-
-    font-size: 12px;
-
-    font-weight: 700;
-}
-
-
-.system.online {
-
-    color:
-        var(--green);
-}
-
-
-.system.warning {
-
-    color:
-        var(--red);
-}
-
-
-.updated {
-
-    color:
-        var(--muted);
-
-    font-size: 10px;
-}
-
-
-/* =====================================================
-   SENSOR GRID
-===================================================== */
-
-.sensor-grid {
-
-    display: grid;
-
-    grid-template-columns:
-        repeat(4, 1fr);
-
-    gap: 10px;
-
-    margin-bottom: 12px;
-
-}
-
-
-.card {
-
-    background:
-        var(--card);
-
-    border:
-        1px solid
-        var(--border);
-
-    border-radius: 15px;
-
-    padding: 15px;
-
-    min-height: 130px;
-
-    box-shadow:
-        0 4px 14px
-        rgba(213, 110, 150, .06);
-
-}
-
-
-.card-top {
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content:
-        space-between;
-
-}
-
-
-.card-name {
-
-    color:
-        var(--muted);
-
-    font-size: 10px;
-
-    font-weight: 700;
-
-    letter-spacing: .5px;
-
-}
-
-
-.icon {
-
-    width: 28px;
-    height: 28px;
-
-    display: grid;
-
-    place-items: center;
-
-    border-radius: 9px;
-
-    background:
-        #fff1f6;
-
-    color:
-        var(--pink-dark);
-
-}
-
-
-.value {
-
-    margin-top: 17px;
-
-    font-size: 27px;
-
-    font-weight: 700;
-
-    letter-spacing: -1px;
-
-}
-
-
-.description {
-
-    margin-top: 4px;
-
-    color:
-        var(--muted);
-
-    font-size: 9px;
-
-}
-
-
-/* ACCENT */
-
-.gas {
-    border-top:
-        3px solid
-        var(--pink);
-}
-
-.humidity {
-    border-top:
-        3px solid
-        #82bde2;
-}
-
-.temperature {
-    border-top:
-        3px solid
-        var(--yellow);
-}
-
-.distance {
-    border-top:
-        3px solid
-        var(--green);
-}
-
-
-/* =====================================================
-   LOWER GRID
-===================================================== */
-
-.lower-grid {
-
-    display: grid;
-
-    grid-template-columns:
-        1fr 1fr;
-
-    gap: 10px;
-
-}
-
-
-/* =====================================================
-   STATUS CARD
-===================================================== */
-
-.status-card {
-
-    background:
-        var(--card);
-
-    border:
-        1px solid
-        var(--border);
-
-    border-radius: 15px;
-
-    padding: 16px;
-
-}
-
-
-.section-title {
-
-    font-size: 12px;
-
-    font-weight: 700;
-
-    margin-bottom: 14px;
-
-}
-
-
-.status-row {
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content:
-        space-between;
-
-    padding:
-        11px 0;
-
-    border-bottom:
-        1px solid
-        #f8e8ee;
-
-}
-
-
-.status-row:last-child {
-
-    border-bottom: none;
-
-}
-
-
-.status-label {
-
-    color:
-        var(--muted);
-
-    font-size: 10px;
-
-}
-
-
-.status {
-
-    padding:
-        5px 9px;
-
-    border-radius: 8px;
-
-    font-size: 10px;
-
-    font-weight: 700;
-
-}
-
-
-.status.safe {
-
-    color:
-        #4eaa90;
-
-    background:
-        #eaf9f4;
-
-}
-
-
-.status.danger {
-
-    color:
-        #d9547e;
-
-    background:
-        #ffedf3;
-
-}
-
-
-/* =====================================================
-   OUTDOOR CARD
-===================================================== */
-
-.outdoor-card {
-
-    background:
-        linear-gradient(
-            145deg,
-            #fff,
-            #fff5f9
-        );
-
-    border:
-        1px solid
-        var(--border);
-
-    border-radius: 15px;
-
-    padding: 16px;
-
-}
-
-
-.outdoor-title {
-
-    display: flex;
-
-    align-items: center;
-
-    gap: 8px;
-
-    font-size: 12px;
-
-    font-weight: 700;
-
-}
-
-
-.outdoor-icon {
-
-    width: 34px;
-    height: 34px;
-
-    display: grid;
-
-    place-items: center;
-
-    border-radius: 11px;
-
-    background:
-        var(--pink-light);
-
-    font-size: 17px;
-
-}
-
-
-.outdoor-text {
-
-    margin-top: 15px;
-
-    font-size: 11px;
-
-    line-height: 1.7;
-
-    color:
-        var(--muted);
-
-}
-
-
-.tip {
-
-    margin-top: 12px;
-
-    padding: 10px;
-
-    border-radius: 10px;
-
-    background:
-        #fff0f6;
-
-    color:
-        #a8677d;
-
-    font-size: 9px;
-
-}
-
-
-/* =====================================================
-   FOOTER
-===================================================== */
-
-.footer {
-
-    margin-top: 13px;
-
-    text-align: center;
-
-    color:
-        var(--muted);
-
-    font-size: 9px;
-
-}
-
-
-/* =====================================================
-   RESPONSIVE
-===================================================== */
-
-@media(max-width:850px) {
-
-    .sensor-grid {
-
-        grid-template-columns:
-            repeat(2, 1fr);
-
+    
+    h1 {
+      text-align: center;
+      color: #d63384;
+      margin-bottom: 30px;
+      font-size: 2.5rem;
+      text-shadow: 2px 2px 4px rgba(214, 51, 132, 0.3);
     }
-
-}
-
-
-@media(max-width:600px) {
-
-    .app {
-
-        width:
-            calc(100% - 18px);
-
-        padding-top: 12px;
-
+    
+    .dashboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 25px;
+      margin-bottom: 30px;
     }
-
-
-    .header {
-
-        align-items:
-            flex-start;
-
-    }
-
-
-    .connection {
-
-        font-size: 9px;
-
-    }
-
-
-    .lower-grid {
-
-        grid-template-columns:
-            1fr;
-
-    }
-
-
-    .value {
-
-        font-size: 23px;
-
-    }
-
-
-    .system-bar {
-
-        align-items:
-            flex-start;
-
-        flex-direction:
-            column;
-
-    }
-
-}
-
-
-@media(max-width:400px) {
-
-    .sensor-grid {
-
-        gap: 7px;
-
-    }
-
-
+    
     .card {
-
-        padding: 12px;
-
-        min-height: 120px;
-
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 20px;
+      padding: 25px;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(214, 51, 132, 0.15);
+      border: 2px solid #ffc2d1;
+      transition: transform 0.3s ease;
     }
-
-
-    .value {
-
-        font-size: 21px;
-
+    
+    .card:hover {
+      transform: translateY(-5px);
     }
-
-}
-
-</style>
+    
+    .card h2 {
+      color: #d63384;
+      margin-bottom: 20px;
+      font-size: 1.5rem;
+    }
+    
+    .gauge-container {
+      position: relative;
+      width: 200px;
+      height: 200px;
+      margin: 0 auto;
+    }
+    
+    .gauge {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: conic-gradient(from 180deg, 
+        #ff6b9c 0deg, 
+        #ff6b9c var(--value-deg, 0deg), 
+        #ffe6ea var(--value-deg, 0deg), 
+        #ffe6ea 360deg);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: inset 0 0 20px rgba(214, 51, 132, 0.2);
+      transition: --value-deg 0.5s ease;
+    }
+    
+    .gauge::before {
+      content: '';
+      position: absolute;
+      width: 140px;
+      height: 140px;
+      background: white;
+      border-radius: 50%;
+    }
+    
+    .gauge-value {
+      position: relative;
+      z-index: 1;
+      font-size: 2rem;
+      font-weight: bold;
+      color: #d63384;
+    }
+    
+    .gauge-label {
+      position: absolute;
+      bottom: 40px;
+      font-size: 0.9rem;
+      color: #a64ca6;
+    }
+    
+    .value-display {
+      font-size: 2.5rem;
+      font-weight: bold;
+      color: #d63384;
+      margin: 15px 0;
+    }
+    
+    .unit {
+      font-size: 1.2rem;
+      color: #a64ca6;
+    }
+    
+    .status {
+      padding: 10px 20px;
+      border-radius: 25px;
+      font-weight: bold;
+      display: inline-block;
+      margin-top: 10px;
+    }
+    
+    .status-safe {
+      background: #d4edda;
+      color: #155724;
+    }
+    
+    .status-warning {
+      background: #fff3cd;
+      color: #856404;
+    }
+    
+    .status-danger {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    
+    .refresh-btn {
+      display: block;
+      margin: 30px auto;
+      padding: 15px 40px;
+      background: linear-gradient(135deg, #d63384, #ff6b9c);
+      color: white;
+      border: none;
+      border-radius: 30px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(214, 51, 132, 0.4);
+      transition: all 0.3s ease;
+    }
+    
+    .refresh-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 20px rgba(214, 51, 132, 0.6);
+    }
+    
+    .last-update {
+      text-align: center;
+      color: #a64ca6;
+      font-size: 0.9rem;
+      margin-top: 20px;
+    }
+    
+    .connection-status {
+      text-align: center;
+      padding: 10px;
+      margin-bottom: 20px;
+      border-radius: 10px;
+      font-weight: bold;
+    }
+    
+    .connected {
+      background: #d4edda;
+      color: #155724;
+    }
+    
+    .disconnected {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    
+    .api-info {
+      background: rgba(255, 255, 255, 0.8);
+      padding: 20px;
+      border-radius: 15px;
+      margin-top: 30px;
+      border: 2px dashed #d63384;
+    }
+    
+    .api-info h3 {
+      color: #d63384;
+      margin-bottom: 15px;
+    }
+    
+    .api-info code {
+      background: #ffe6ea;
+      padding: 2px 8px;
+      border-radius: 5px;
+      color: #d63384;
+      font-family: 'Courier New', monospace;
+    }
+    
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 2rem;
+      }
+      
+      .dashboard {
+        grid-template-columns: 1fr;
+      }
+      
+      .gauge-container {
+        width: 150px;
+        height: 150px;
+      }
+      
+      .gauge-value {
+        font-size: 1.5rem;
+      }
+    }
+  </style>
 </head>
-
-
 <body>
-
-<div class="app">
-
-
-<!-- =====================================================
-     HEADER
-===================================================== -->
-
-<header class="header">
-
-    <div class="brand">
-
-        <div class="logo">
-            ♡
-        </div>
-
-        <div>
-
-            <div class="title">
-                PinkSense
-            </div>
-
-            <div class="subtitle">
-                Outdoor Environmental Monitor
-            </div>
-
-        </div>
-
+  <div class="container">
+    <h1>🚗 RC Car Monitor</h1>
+    
+    <div id="connectionStatus" class="connection-status disconnected">
+      ⚠️ Menunggu koneksi...
     </div>
-
-
-    <div class="connection"
-         id="firebaseStatus">
-
-        ○ Connecting...
-
+    
+    <div class="dashboard">
+      <!-- Temperature Card -->
+      <div class="card">
+        <h2>🌡️ Suhu</h2>
+        <div class="gauge-container">
+          <div class="gauge" id="tempGauge" style="--value-deg: 0deg;">
+            <span class="gauge-value" id="tempValue">0</span>
+          </div>
+          <span class="gauge-label">°C</span>
+        </div>
+        <div class="value-display">
+          <span id="tempDisplay">0</span>
+          <span class="unit">°C</span>
+        </div>
+        <div class="status status-safe" id="tempStatus">Normal</div>
+      </div>
+      
+      <!-- Humidity Card -->
+      <div class="card">
+        <h2>💧 Kelembapan</h2>
+        <div class="gauge-container">
+          <div class="gauge" id="humGauge" style="--value-deg: 0deg;">
+            <span class="gauge-value" id="humValue">0</span>
+          </div>
+          <span class="gauge-label">%</span>
+        </div>
+        <div class="value-display">
+          <span id="humDisplay">0</span>
+          <span class="unit">%</span>
+        </div>
+        <div class="status status-safe" id="humStatus">Normal</div>
+      </div>
+      
+      <!-- Gas Card -->
+      <div class="card">
+        <h2>💨 Gas (MQ-2)</h2>
+        <div class="gauge-container">
+          <div class="gauge" id="gasGauge" style="--value-deg: 0deg;">
+            <span class="gauge-value" id="gasValue">0</span>
+          </div>
+          <span class="gauge-label">Level</span>
+        </div>
+        <div class="value-display">
+          <span id="gasDisplay">0</span>
+        </div>
+        <div class="status status-safe" id="gasStatus">Aman</div>
+      </div>
+      
+      <!-- Distance Card -->
+      <div class="card">
+        <h2>📏 Jarak</h2>
+        <div class="gauge-container">
+          <div class="gauge" id="distGauge" style="--value-deg: 0deg;">
+            <span class="gauge-value" id="distValue">0</span>
+          </div>
+          <span class="gauge-label">cm</span>
+        </div>
+        <div class="value-display">
+          <span id="distDisplay">0</span>
+          <span class="unit">cm</span>
+        </div>
+        <div class="status status-safe" id="distStatus">Jelas</div>
+      </div>
     </div>
-
-</header>
-
-
-<!-- =====================================================
-     SYSTEM
-===================================================== -->
-
-<section class="system-bar">
-
-    <div
-        id="systemStatus"
-        class="system online">
-
-        Sistem Normal
-
+    
+    <button class="refresh-btn" onclick="fetchData()">🔄 Refresh Data</button>
+    <div class="last-update" id="lastUpdate">Update terakhir: --</div>
+    
+    <div class="api-info">
+      <h3>📡 Setup API Endpoint</h3>
+      <p>Dashboard ini membutuhkan API endpoint untuk membaca data sensor ESP32. Buat file <code>data.json</code> di repository GitHub Anda dengan format:</p>
+      <pre style="background: #ffe6ea; padding: 15px; border-radius: 10px; overflow-x: auto; margin-top: 10px;">
+{
+  "temperature": 28.5,
+  "humidity": 65.2,
+  "gas": 1250,
+  "distance": 45.3
+}</pre>
+      <p style="margin-top: 15px;">Atau gunakan ESP32 web server dan ganti <code>API_URL</code> di JavaScript dengan alamat IP ESP32 Anda.</p>
     </div>
-
-
-    <div class="updated">
-
-        Update:
-        <span id="lastUpdate">
-            menunggu...
-        </span>
-
-    </div>
-
-</section>
-
-
-<!-- =====================================================
-     SENSOR CARDS
-===================================================== -->
-
-<section class="sensor-grid">
-
-
-    <!-- GAS -->
-
-    <article class="card gas">
-
-        <div class="card-top">
-
-            <div class="card-name">
-                MQ-2 GAS
-            </div>
-
-            <div class="icon">
-                ♡
-            </div>
-
-        </div>
-
-        <div
-            class="value"
-            id="gas">
-
-            —
-
-        </div>
-
-        <div class="description">
-            Gas concentration / ADC
-        </div>
-
-    </article>
-
-
-    <!-- HUMIDITY -->
-
-    <article class="card humidity">
-
-        <div class="card-top">
-
-            <div class="card-name">
-                HUMIDITY
-            </div>
-
-            <div class="icon">
-                💧
-            </div>
-
-        </div>
-
-        <div
-            class="value"
-            id="humidity">
-
-            —
-
-        </div>
-
-        <div class="description">
-            Kelembapan udara
-        </div>
-
-    </article>
-
-
-    <!-- TEMPERATURE -->
-
-    <article class="card temperature">
-
-        <div class="card-top">
-
-            <div class="card-name">
-                TEMPERATURE
-            </div>
-
-            <div class="icon">
-                ☀
-            </div>
-
-        </div>
-
-        <div
-            class="value"
-            id="temperature">
-
-            —
-
-        </div>
-
-        <div class="description">
-            Suhu lingkungan
-        </div>
-
-    </article>
-
-
-    <!-- DISTANCE -->
-
-    <article class="card distance">
-
-        <div class="card-top">
-
-            <div class="card-name">
-                DISTANCE
-            </div>
-
-            <div class="icon">
-                ⌁
-            </div>
-
-        </div>
-
-        <div
-            class="value"
-            id="distance">
-
-            —
-
-        </div>
-
-        <div class="description">
-            Ultrasonic radar
-        </div>
-
-    </article>
-
-
-</section>
-
-
-<!-- =====================================================
-     LOWER
-===================================================== -->
-
-<section class="lower-grid">
-
-
-    <!-- ROBOT STATUS -->
-
-    <article class="status-card">
-
-        <div class="section-title">
-            🤖 Robot & Alarm
-        </div>
-
-
-        <div class="status-row">
-
-            <span class="status-label">
-                Robot Action
-            </span>
-
-            <span
-                id="robot"
-                class="status safe">
-
-                Menunggu
-
-            </span>
-
-        </div>
-
-
-        <div class="status-row">
-
-            <span class="status-label">
-                Buzzer
-            </span>
-
-            <span
-                id="buzzer"
-                class="status safe">
-
-                Standby
-
-            </span>
-
-        </div>
-
-
-        <div class="status-row">
-
-            <span class="status-label">
-                Radar threshold
-            </span>
-
-            <span class="status safe">
-                25 cm
-            </span>
-
-        </div>
-
-
-    </article>
-
-
-    <!-- OUTDOOR -->
-
-    <article class="outdoor-card">
-
-        <div class="outdoor-title">
-
-            <div class="outdoor-icon">
-                🌷
-            </div>
-
-            Outdoor Monitor
-
-        </div>
-
-
-        <div class="outdoor-text">
-
-            Monitoring lingkungan secara
-            realtime melalui ESP32 dan
-            Firebase Realtime Database.
-
-        </div>
-
-
-        <div class="tip">
-
-            ♡ Data sensor diperbarui
-            langsung ketika ESP32 mengirim
-            perubahan ke Firebase.
-
-        </div>
-
-    </article>
-
-
-</section>
-
-
-<footer class="footer">
-
-    PinkSense • ESP32 Telemetry
-    • Realtime Monitoring
-
-</footer>
-
-
-</div>
-
+  </div>
+  
+  <script>
+    // KONFIGURASI API URL
+    // Ganti dengan URL ESP32 Anda atau file data.json
+    const API_URL = 'data.json'; // Gunakan 'http://IP_ESP32/data' untuk ESP32 langsung
+    
+    function updateGauge(elementId, value, maxValue) {
+      const gauge = document.getElementById(elementId);
+      const percentage = Math.min(value / maxValue, 1);
+      const degrees = percentage * 360;
+      gauge.style.setProperty('--value-deg', degrees + 'deg');
+    }
+    
+    function updateTemperatureStatus(value) {
+      const status = document.getElementById('tempStatus');
+      if (value <= 35) {
+        status.className = 'status status-safe';
+        status.textContent = 'Normal';
+      } else if (value <= 45) {
+        status.className = 'status status-warning';
+        status.textContent = 'Hangat';
+      } else {
+        status.className = 'status status-danger';
+        status.textContent = 'Panas!';
+      }
+    }
+    
+    function updateHumidityStatus(value) {
+      const status = document.getElementById('humStatus');
+      if (value <= 60) {
+        status.className = 'status status-safe';
+        status.textContent = 'Normal';
+      } else if (value <= 80) {
+        status.className = 'status status-warning';
+        status.textContent = 'Lembap';
+      } else {
+        status.className = 'status status-danger';
+        status.textContent = 'Basah!';
+      }
+    }
+    
+    function updateGasStatus(value) {
+      const status = document.getElementById('gasStatus');
+      if (value < 1000) {
+        status.className = 'status status-safe';
+        status.textContent = 'Aman';
+      } else if (value < 2000) {
+        status.className = 'status status-warning';
+        status.textContent = 'Waspada';
+      } else {
+        status.className = 'status status-danger';
+        status.textContent = 'Bahaya!';
+      }
+    }
+    
+    function updateDistanceStatus(value) {
+      const status = document.getElementById('distStatus');
+      if (value > 50) {
+        status.className = 'status status-safe';
+        status.textContent = 'Jelas';
+      } else if (value > 20) {
+        status.className = 'status status-warning';
+        status.textContent = 'Dekat';
+      } else {
+        status.className = 'status status-danger';
+        status.textContent = 'Hati-hati!';
+      }
+    }
+    
+    async function fetchData() {
+      const statusDiv = document.getElementById('connectionStatus');
+      
+      try {
+        const response = await fetch(API_URL);
+        
+        if (!response.ok) {
+          throw new Error('HTTP error! status: ' + response.status);
+        }
+        
+        const data = await response.json();
+        
+        // Update connection status
+        statusDiv.className = 'connection-status connected';
+        statusDiv.textContent = '✅ Terhubung ke sensor';
+        
+        // Update temperature
+        document.getElementById('tempValue').textContent = data.temperature.toFixed(1);
+        document.getElementById('tempDisplay').textContent = data.temperature.toFixed(1);
+        updateGauge('tempGauge', data.temperature, 50);
+        updateTemperatureStatus(data.temperature);
+        
+        // Update humidity
+        document.getElementById('humValue').textContent = data.humidity.toFixed(1);
+        document.getElementById('humDisplay').textContent = data.humidity.toFixed(1);
+        updateGauge('humGauge', data.humidity, 100);
+        updateHumidityStatus(data.humidity);
+        
+        // Update gas
+        document.getElementById('gasValue').textContent = data.gas;
+        document.getElementById('gasDisplay').textContent = data.gas;
+        updateGauge('gasGauge', data.gas, 4095);
+        updateGasStatus(data.gas);
+        
+        // Update distance
+        document.getElementById('distValue').textContent = data.distance.toFixed(1);
+        document.getElementById('distDisplay').textContent = data.distance.toFixed(1);
+        updateGauge('distGauge', data.distance, 400);
+        updateDistanceStatus(data.distance);
+        
+        // Update timestamp
+        const now = new Date();
+        document.getElementById('lastUpdate').textContent = 
+          'Update terakhir: ' + now.toLocaleTimeString('id-ID', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+          });
+          
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        statusDiv.className = 'connection-status disconnected';
+        statusDiv.textContent = '❌ Gagal terhubung: ' + error.message;
+      }
+    }
+    
+    // Auto refresh setiap 3 detik
+    setInterval(fetchData, 3000);
+    
+    // Fetch data saat halaman dimuat
+    fetchData();
+  </script>
 </body>
 </html>
