@@ -1,0 +1,8 @@
+{
+  "monitoring": {
+    "suhu": 32.5,
+    "kelembapan": 75.0,
+    "gas": 450,
+    "jarak": 120
+  }
+}
