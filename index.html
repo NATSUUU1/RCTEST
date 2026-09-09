@@ -2,859 +2,1228 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PinkSense • Realtime Telemetry Monitor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<title>PinkSense Outdoor Monitor</title>
 
-<style>
-/* =========================================================
-   LIGHTWEIGHT UI
-   Warna dipertahankan, efek berat dikurangi.
-========================================================= */
-
-:root{
-  --bg:#fff7fb;
-  --card:#fff;
-  --pink:#f47aaa;
-  --pink2:#ffb7d2;
-  --rose:#e85d93;
-  --lav:#b79bea;
-  --mint:#7bcfba;
-  --yellow:#f3bd65;
-  --blue:#77bfe4;
-  --text:#573f4c;
-  --muted:#9b7f8c;
-  --line:rgba(232,93,147,.13);
-}
-
-*{box-sizing:border-box}
-
-html,body{
-  margin:0;
-  min-height:100%;
-}
-
-body{
-  color:var(--text);
-  font-family:"DM Sans",Arial,sans-serif;
-  background:var(--bg);
-  overflow-x:hidden;
-}
-
-/* Background ringan: tanpa backdrop-filter, blur, atau fixed image */
-body:before{
-  content:"";
-  position:fixed;
-  inset:0;
-  pointer-events:none;
-  opacity:.22;
-  background-image:radial-gradient(#ef9db9 1px,transparent 1px);
-  background-size:24px 24px;
-}
-
-.shell{
-  width:min(1380px,calc(100% - 24px));
-  margin:auto;
-  padding:14px 0 24px;
-}
-
-/* HEADER */
-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:18px;
-  padding:16px 19px;
-  margin-bottom:12px;
-  border:1px solid var(--line);
-  border-radius:20px;
-  background:var(--card);
-  box-shadow:0 5px 18px rgba(183,93,133,.08);
-}
-
-.brand{
-  display:flex;
-  align-items:center;
-  gap:12px;
-}
-
-.logo{
-  width:46px;
-  height:46px;
-  display:grid;
-  place-items:center;
-  flex:none;
-  border-radius:14px;
-  background:linear-gradient(145deg,#ff9fc3,#e983b0);
-  color:white;
-  font-size:22px;
-}
-
-.eyebrow{
-  color:var(--rose);
-  font-size:9px;
-  font-weight:800;
-  letter-spacing:2px;
-}
-
-h1{
-  margin:2px 0 0;
-  font:700 22px Quicksand,Arial,sans-serif;
-}
-
-.subtitle{
-  color:var(--muted);
-  font-size:11px;
-  margin-top:2px;
-}
-
-.operator{
-  text-align:right;
-  color:var(--muted);
-  font-size:10px;
-  line-height:1.6;
-}
-
-.operator b{color:var(--text)}
-
-/* STATUS */
-.status{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:10px;
-  margin-bottom:12px;
-  padding:11px 14px;
-  border:1px solid rgba(123,207,186,.3);
-  border-radius:14px;
-  background:#fff;
-  transition:border-color .15s ease,background .15s ease;
-}
-
-.status-left{
-  display:flex;
-  align-items:center;
-  gap:9px;
-  font-weight:700;
-  font-size:12px;
-}
-
-.dot{
-  width:9px;
-  height:9px;
-  border-radius:50%;
-  background:var(--mint);
-  box-shadow:0 0 8px rgba(123,207,186,.6);
-  flex:none;
-}
-
-.status.danger{
-  border-color:rgba(232,93,147,.35);
-  background:#fff1f6;
-}
-
-.status.danger .dot{
-  background:var(--rose);
-  box-shadow:0 0 10px rgba(232,93,147,.65);
-}
-
-.status small{
-  color:var(--muted);
-  font-size:10px;
-}
-
-#connection{font-weight:700}
-
-/* METRICS */
-.metrics{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:10px;
-  margin-bottom:12px;
-}
-
-.metric{
-  position:relative;
-  overflow:hidden;
-  padding:14px;
-  border:1px solid var(--line);
-  border-radius:17px;
-  background:var(--card);
-  box-shadow:0 5px 18px rgba(183,93,133,.07);
-}
-
-.metric-top{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  color:var(--muted);
-  font-size:10px;
-  font-weight:700;
-}
-
-.metric-icon{
-  color:var(--accent);
-  font-size:15px;
-}
-
-.value{
-  margin:7px 0 1px;
-  font:700 24px Quicksand,Arial,sans-serif;
-  color:var(--text);
-}
-
-.unit{
-  color:var(--muted);
-  font-size:10px;
-}
-
-.sensor-wheel{
-  width:10px;
-  height:10px;
-  border-radius:50%;
-  background:#dcd6db;
-  display:inline-block;
-  margin-right:4px;
-  vertical-align:middle;
-}
-
-.sensor-wheel.active{
-  background:var(--accent);
-  box-shadow:0 0 8px var(--accent);
-}
-
-.sensor-wheel.flash{
-  transform:scale(1.3);
-}
-
-.gas{--accent:var(--rose)}
-.hum{--accent:var(--blue)}
-.temp{--accent:var(--yellow)}
-.dist{--accent:var(--mint)}
-.action{--accent:var(--lav)}
-.buzzer{--accent:var(--pink2)}
-
-/* CHARTS */
-.grid{
-  display:grid;
-  grid-template-columns:repeat(2,1fr);
-  gap:10px;
-}
-
-.card{
-  min-height:290px;
-  padding:14px;
-  border:1px solid var(--line);
-  border-radius:18px;
-  background:var(--card);
-  box-shadow:0 5px 18px rgba(183,93,133,.07);
-}
-
-.card-head{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:5px;
-}
-
-.card-title{
-  font-weight:700;
-  font-size:11px;
-}
-
-.live{
-  color:var(--rose);
-  font-size:8px;
-  letter-spacing:1px;
-  font-weight:800;
-  background:#fff0f6;
-  padding:4px 7px;
-  border-radius:12px;
-}
-
-.chart-wrap{
-  height:245px;
-  position:relative;
-}
-
-canvas{
-  display:block;
-  width:100%!important;
-  height:100%!important;
-}
-
-footer{
-  display:flex;
-  justify-content:space-between;
-  color:var(--muted);
-  font-size:9px;
-  padding:12px 3px 0;
-}
-
-@media(max-width:900px){
-  .metrics{grid-template-columns:repeat(2,1fr)}
-  .grid{grid-template-columns:1fr}
-  header{
-    align-items:flex-start;
-    flex-direction:column;
-  }
-  .operator{text-align:left}
-}
-
-@media(max-width:520px){
-  .shell{
-    width:calc(100% - 14px);
-    padding-top:8px;
-  }
-
-  header{
-    padding:13px;
-  }
-
-  .metrics{gap:7px}
-
-  .metric{padding:11px}
-
-  .value{font-size:19px}
-
-  .status{
-    align-items:flex-start;
-    flex-direction:column;
-  }
-
-  .card{
-    min-height:270px;
-    padding:11px;
-  }
-
-  .chart-wrap{height:225px}
-
-  footer{
-    flex-direction:column;
-    gap:4px;
-  }
-}
-</style>
-</head>
-
-<body>
-<div class="shell">
-
-<header>
-  <div class="brand">
-    <div class="logo">♡</div>
-    <div>
-      <div class="eyebrow">PINKSENSE / REALTIME TELEMETRY</div>
-      <h1>Environmental &amp; Radar Monitor</h1>
-      <div class="subtitle">Cute dashboard • Firebase realtime • lightweight UI</div>
-    </div>
-  </div>
-
-  <div class="operator">
-    OPERATOR <b>KELOMPOK 2 GACOR</b><br>
-    ID <b>ROBOTIKA</b> · CLASS <b>2TE1</b>
-  </div>
-</header>
-
-<section id="status" class="status">
-  <div class="status-left">
-    <span class="dot"></span>
-    <span id="statusText">Menghubungkan ke sensor...</span>
-  </div>
-  <small id="lastUpdate">Menunggu data realtime...</small>
-</section>
-
-<section class="metrics">
-
-  <div class="metric gas">
-    <div class="metric-top">
-      <span>MQ-2 GAS</span>
-      <div><span id="wheelGas" class="sensor-wheel"></span><span class="metric-icon">♡</span></div>
-    </div>
-    <div id="gasValue" class="value">—</div>
-    <div class="unit">ADC / 4095</div>
-  </div>
-
-  <div class="metric hum">
-    <div class="metric-top">
-      <span>HUMIDITY</span>
-      <div><span id="wheelHum" class="sensor-wheel"></span><span class="metric-icon">◌</span></div>
-    </div>
-    <div id="humValue" class="value">—</div>
-    <div class="unit">% RH</div>
-  </div>
-
-  <div class="metric temp">
-    <div class="metric-top">
-      <span>TEMPERATURE</span>
-      <div><span id="wheelTemp" class="sensor-wheel"></span><span class="metric-icon">☼</span></div>
-    </div>
-    <div id="tempValue" class="value">—</div>
-    <div class="unit">°C</div>
-  </div>
-
-  <div class="metric dist">
-    <div class="metric-top">
-      <span>DISTANCE</span>
-      <div><span id="wheelDist" class="sensor-wheel"></span><span class="metric-icon">⌁</span></div>
-    </div>
-    <div id="distValue" class="value">—</div>
-    <div class="unit">cm (Radar)</div>
-  </div>
-
-  <div class="metric action">
-    <div class="metric-top">
-      <span>ROBOT ACTION</span>
-      <div><span id="wheelAction" class="sensor-wheel"></span><span class="metric-icon">🚀</span></div>
-    </div>
-    <div id="actionValue" class="value">—</div>
-    <div class="unit">Status Kemudi Otomatis</div>
-  </div>
-
-  <div class="metric buzzer">
-    <div class="metric-top">
-      <span>BUZZER ALARM</span>
-      <div><span id="wheelBuzzer" class="sensor-wheel"></span><span class="metric-icon">🔔</span></div>
-    </div>
-    <div id="buzzerValue" class="value">—</div>
-    <div class="unit">Sistem Peringatan</div>
-  </div>
-
-</section>
-
-<main class="grid">
-
-  <div class="card">
-    <div class="card-head">
-      <div class="card-title">♡ Kadar Gas · MQ-2</div>
-      <div class="live">● REALTIME</div>
-    </div>
-    <div class="chart-wrap"><canvas id="gasChart"></canvas></div>
-  </div>
-
-  <div class="card">
-    <div class="card-head">
-      <div class="card-title">💧 Kelembapan</div>
-      <div class="live">● REALTIME</div>
-    </div>
-    <div class="chart-wrap"><canvas id="humChart"></canvas></div>
-  </div>
-
-  <div class="card">
-    <div class="card-head">
-      <div class="card-title">☼ Suhu Ruang</div>
-      <div class="live">● REALTIME</div>
-    </div>
-    <div class="chart-wrap"><canvas id="tempChart"></canvas></div>
-  </div>
-
-  <div class="card">
-    <div class="card-head">
-      <div class="card-title">⌁ Jarak Radar Ultrasonik</div>
-      <div class="live">● REALTIME</div>
-    </div>
-    <div class="chart-wrap"><canvas id="distChart"></canvas></div>
-  </div>
-
-</main>
-
-<footer>
-  <span>Firebase Realtime Database · Direct Event Rendering</span>
-  <span id="connection">CONNECTING…</span>
-</footer>
-
-</div>
-
+<!-- Firebase -->
 <script type="module">
-import {initializeApp}
-from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 
-import {getDatabase,ref,onValue}
-from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+import {
+    getDatabase,
+    ref,
+    onValue
+}
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 
-/* =========================================================
+/* =====================================================
    FIREBASE
-========================================================= */
+===================================================== */
 
-const firebaseConfig={
-  databaseURL:
+const firebaseConfig = {
+    databaseURL:
     "https://rc-telementri-default-rtdb.asia-southeast1.firebasedatabase.app"
 };
 
-const app=initializeApp(firebaseConfig);
-const db=getDatabase(app);
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
 
-/* =========================================================
-   CACHE ELEMENT
-   Elemen dicari sekali saja supaya DOM lebih ringan.
-========================================================= */
+/* =====================================================
+   ELEMENT
+===================================================== */
 
-const $=id=>document.getElementById(id);
+const $ = id => document.getElementById(id);
 
-const el={
-  gas:$("gasValue"),
-  hum:$("humValue"),
-  temp:$("tempValue"),
-  dist:$("distValue"),
+const gas       = $("gas");
+const humidity  = $("humidity");
+const temp      = $("temperature");
+const distance  = $("distance");
 
-  action:$("actionValue"),
-  buzzer:$("buzzerValue"),
+const robot     = $("robot");
+const buzzer    = $("buzzer");
 
-  status:$("status"),
-  statusText:$("statusText"),
-  lastUpdate:$("lastUpdate"),
-  connection:$("connection"),
-
-  wheelGas:$("wheelGas"),
-  wheelHum:$("wheelHum"),
-  wheelTemp:$("wheelTemp"),
-  wheelDist:$("wheelDist"),
-  wheelAction:$("wheelAction"),
-  wheelBuzzer:$("wheelBuzzer")
-};
+const system    = $("systemStatus");
+const updated   = $("lastUpdate");
+const firebase  = $("firebaseStatus");
 
 
-/* =========================================================
-   CHART
-   Chart tetap tersedia, tetapi dibuat lebih ringan:
-   - animasi OFF
-   - titik OFF
-   - tooltip sederhana
-   - hanya 15 data
-   - parsing OFF
-========================================================= */
-
-const maxPoints=15;
-
-Chart.defaults.color="#9b7f8c";
-Chart.defaults.font.family="DM Sans";
-Chart.defaults.font.size=9;
-Chart.defaults.animation=false;
-
-
-function createChart(id,label,color,max){
-
-  return new Chart($(id),{
-    type:"line",
-
-    data:{
-      labels:[],
-      datasets:[{
-        label:label,
-        data:[],
-        borderColor:color,
-        backgroundColor:color+"18",
-        borderWidth:2,
-        fill:true,
-        tension:.2,
-        pointRadius:0,
-        pointHoverRadius:3
-      }]
-    },
-
-    options:{
-      responsive:true,
-      maintainAspectRatio:false,
-      animation:false,
-      parsing:false,
-      normalized:true,
-
-      interaction:{
-        intersect:false,
-        mode:"index"
-      },
-
-      plugins:{
-        legend:{display:false},
-
-        tooltip:{
-          displayColors:false,
-          backgroundColor:"#573f4c",
-          padding:7,
-          cornerRadius:7
-        }
-      },
-
-      scales:{
-        y:{
-          min:0,
-          suggestedMax:max,
-          border:{display:false},
-          grid:{
-            color:"rgba(180,130,150,.08)"
-          }
-        },
-
-        x:{
-          border:{display:false},
-          grid:{display:false},
-          ticks:{
-            maxTicksLimit:5
-          }
-        }
-      }
-    }
-  });
-}
-
-
-const gasChart=createChart("gasChart","Gas","#e85d93",4095);
-const humChart=createChart("humChart","Humidity","#77bfe4",100);
-const tempChart=createChart("tempChart","Temperature","#f3bd65",50);
-const distChart=createChart("distChart","Distance","#7bcfba",200);
-
-
-/* =========================================================
-   CHART DATA
-========================================================= */
-
-function addPoint(chart,value,label){
-
-  const labels=chart.data.labels;
-  const data=chart.data.datasets[0].data;
-
-  labels.push(label);
-  data.push(value);
-
-  if(labels.length>maxPoints){
-    labels.shift();
-    data.shift();
-  }
-
-  chart.update("none");
-}
-
-
-/* =========================================================
-   TEXT
-========================================================= */
-
-function setText(element,value,decimal=0){
-
-  const number=Number(value);
-
-  element.textContent=
-    Number.isFinite(number)
-      ? number.toFixed(decimal)
-      : "—";
-}
-
-
-/* =========================================================
-   WHEEL FLASH
-   Animasi sangat singkat dan tidak memakai CSS animation loop.
-========================================================= */
-
-function flashWheel(wheel){
-
-  wheel.classList.add("active","flash");
-
-  setTimeout(()=>{
-    wheel.classList.remove("flash");
-  },90);
-}
-
-
-/* =========================================================
-   CHART UPDATE SCHEDULER
-   Nilai sensor TETAP langsung diperbarui.
-   Hanya penggambaran grafik yang dikelompokkan ke frame browser
-   agar grafik tidak menghambat UI ketika data datang cepat.
-========================================================= */
-
-let chartFramePending=false;
-let pendingChartData=null;
-
-function scheduleCharts(gas,hum,temp,dist,time){
-
-  pendingChartData={gas,hum,temp,dist,time};
-
-  if(chartFramePending) return;
-
-  chartFramePending=true;
-
-  requestAnimationFrame(()=>{
-
-    chartFramePending=false;
-
-    if(!pendingChartData) return;
-
-    const d=pendingChartData;
-    pendingChartData=null;
-
-    addPoint(gasChart,d.gas,d.time);
-    addPoint(humChart,d.hum,d.time);
-    addPoint(tempChart,d.temp,d.time);
-    addPoint(distChart,d.dist,d.time);
-
-  });
-}
-
-
-/* =========================================================
+/* =====================================================
    REALTIME SENSOR
-   Tidak menggunakan setInterval.
-   Tidak ada delay buatan 1 detik.
-========================================================= */
+   Tidak menggunakan polling.
+===================================================== */
 
-const sensorRef=ref(db,"Sensor");
+const sensorRef = ref(db, "Sensor");
 
-onValue(
+onValue(sensorRef, snapshot => {
 
-  sensorRef,
+    const data = snapshot.val();
 
-  snapshot=>{
-
-    const data=snapshot.val();
-
-    if(!data) return;
+    if (!data) return;
 
 
-    /* SENSOR */
+    /* ==========================
+       SENSOR DATA
+    ========================== */
 
-    const gas=Number(data.Gas)||0;
-    const hum=Number(data.Kelembapan)||0;
-    const temp=Number(data.Suhu)||0;
-    const dist=Number(data.Jarak)||0;
+    const gasValue =
+        Number(data.Gas) || 0;
 
+    const humidityValue =
+        Number(data.Kelembapan) || 0;
 
-    /* WAKTU */
+    const temperatureValue =
+        Number(data.Suhu) || 0;
 
-    const now=new Date();
-
-    const time=now.toLocaleTimeString(
-      "id-ID",
-      {hour12:false}
-    );
-
-
-    /* ANGKA LANGSUNG */
-
-    setText(el.gas,gas);
-    setText(el.hum,hum,1);
-    setText(el.temp,temp,1);
-    setText(el.dist,dist,1);
+    const distanceValue =
+        Number(data.Jarak) || 0;
 
 
-    /* GRAFIK */
-    scheduleCharts(
-      gas,
-      hum,
-      temp,
-      dist,
-      time
-    );
+    /* ==========================
+       UPDATE ANGKA
+       Langsung ke DOM
+    ========================== */
+
+    gas.textContent =
+        gasValue.toFixed(0);
+
+    humidity.textContent =
+        humidityValue.toFixed(1) + "%";
+
+    temp.textContent =
+        temperatureValue.toFixed(1) + "°";
+
+    distance.textContent =
+        distanceValue.toFixed(1) + " cm";
 
 
-    /* ALARM */
+    /* ==========================
+       STATUS ROBOT
+    ========================== */
 
-    const alarm=
-      gas>2000 ||
-      hum>80;
+    if (
+        distanceValue > 0 &&
+        distanceValue < 25
+    ) {
 
-    el.status.classList.toggle(
-      "danger",
-      alarm
-    );
+        robot.textContent = "Menghindar";
+        robot.className = "status danger";
 
-    if(alarm){
+    } else {
 
-      el.statusText.textContent=
-        "⚠ WARNING · THRESHOLD EXCEEDED";
+        robot.textContent = "Aman / Maju";
+        robot.className = "status safe";
 
-      el.buzzer.textContent="MENYALA";
-      el.buzzer.style.color="var(--rose)";
-
-    }else{
-
-      el.statusText.textContent=
-        "♡ SYSTEM ONLINE · REALTIME";
-
-      el.buzzer.textContent="STANDBY";
-      el.buzzer.style.color="var(--text)";
     }
 
 
-    /* ROBOT */
+    /* ==========================
+       BUZZER
+    ========================== */
 
-    const isObstacle=
-      dist>0 &&
-      dist<25;
+    if (
+        gasValue > 2000 ||
+        humidityValue > 80
+    ) {
 
-    if(isObstacle){
+        buzzer.textContent = "AKTIF";
+        buzzer.className = "status danger";
 
-      el.action.textContent="MENGHINDAR";
-      el.action.style.color="var(--rose)";
+        system.textContent = "PERINGATAN";
+        system.className = "system warning";
 
-    }else{
+    } else {
 
-      el.action.textContent="MAJU (AMAN)";
-      el.action.style.color="var(--text)";
+        buzzer.textContent = "Standby";
+        buzzer.className = "status safe";
+
+        system.textContent = "Sistem Normal";
+        system.className = "system online";
+
     }
 
 
-    /* SENSOR INDICATORS */
+    /* ==========================
+       UPDATE TIME
+    ========================== */
 
-    flashWheel(el.wheelGas);
-    flashWheel(el.wheelHum);
-    flashWheel(el.wheelTemp);
-    flashWheel(el.wheelDist);
+    const now = new Date();
 
-    el.wheelAction.classList.toggle(
-      "active",
-      isObstacle
-    );
+    updated.textContent =
+        now.toLocaleTimeString(
+            "id-ID",
+            {
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit"
+            }
+        );
 
-    el.wheelBuzzer.classList.toggle(
-      "active",
-      alarm
-    );
-
-
-    /* LAST UPDATE */
-
-    el.lastUpdate.textContent=
-      "⚡ Realtime "+time;
-
-  },
-
-  error=>{
-
-    el.statusText.textContent=
-      "Koneksi sensor bermasalah";
-
-    el.connection.textContent=
-      "CONNECTION ERROR";
-
-    console.error("Firebase:",error);
-  }
-);
+});
 
 
-/* =========================================================
+/* =====================================================
    FIREBASE CONNECTION
-========================================================= */
+===================================================== */
 
-const connectedRef=
-  ref(db,".info/connected");
+const connectionRef =
+    ref(db, ".info/connected");
 
-onValue(
-  connectedRef,
-  snapshot=>{
+onValue(connectionRef, snapshot => {
 
-    const online=
-      snapshot.val()===true;
+    const connected =
+        snapshot.val() === true;
 
-    el.connection.textContent=
-      online
-        ? "● FIREBASE CONNECTED · REALTIME"
-        : "○ FIREBASE OFFLINE";
-  }
-);
+    if (connected) {
+
+        firebase.textContent =
+            "● Terhubung realtime";
+
+        firebase.className =
+            "connected";
+
+    } else {
+
+        firebase.textContent =
+            "○ Offline";
+
+        firebase.className =
+            "disconnected";
+    }
+
+});
 
 </script>
+
+
+<style>
+
+/* =====================================================
+   PINK SOFT COLOR PALETTE
+===================================================== */
+
+:root {
+
+    --background: #fff7fb;
+
+    --card: #ffffff;
+
+    --pink: #f48fb1;
+    --pink-dark: #e56b99;
+    --pink-light: #ffd6e5;
+
+    --text: #5d4651;
+    --muted: #a58c97;
+
+    --green: #78cbb2;
+    --yellow: #efbd67;
+    --red: #ed7197;
+
+    --border: #f3dce6;
+
+}
+
+
+/* =====================================================
+   RESET
+===================================================== */
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+
+    margin: 0;
+
+    background:
+        linear-gradient(
+            180deg,
+            #fff9fc 0%,
+            #fff4f8 100%
+        );
+
+    color: var(--text);
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+}
+
+
+/* =====================================================
+   APP
+===================================================== */
+
+.app {
+
+    width: min(
+        1200px,
+        calc(100% - 28px)
+    );
+
+    margin: auto;
+
+    padding:
+        18px
+        0
+        30px;
+}
+
+
+/* =====================================================
+   HEADER
+===================================================== */
+
+.header {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content:
+        space-between;
+
+    gap: 15px;
+
+    margin-bottom: 16px;
+
+}
+
+
+.brand {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
+}
+
+
+.logo {
+
+    width: 45px;
+    height: 45px;
+
+    display: grid;
+
+    place-items: center;
+
+    border-radius: 14px;
+
+    background:
+        var(--pink-light);
+
+    color:
+        var(--pink-dark);
+
+    font-size: 22px;
+}
+
+
+.title {
+
+    font-size: 20px;
+
+    font-weight: 700;
+
+    letter-spacing: -.4px;
+}
+
+
+.subtitle {
+
+    margin-top: 3px;
+
+    font-size: 11px;
+
+    color:
+        var(--muted);
+}
+
+
+.connection {
+
+    text-align: right;
+
+    font-size: 11px;
+
+}
+
+
+.connected {
+
+    color:
+        var(--green);
+
+    font-weight: 700;
+}
+
+
+.disconnected {
+
+    color:
+        var(--red);
+
+    font-weight: 700;
+}
+
+
+/* =====================================================
+   SYSTEM BAR
+===================================================== */
+
+.system-bar {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content:
+        space-between;
+
+    gap: 10px;
+
+    padding:
+        12px 15px;
+
+    margin-bottom: 12px;
+
+    background:
+        var(--card);
+
+    border:
+        1px solid
+        var(--border);
+
+    border-radius: 14px;
+
+}
+
+
+.system {
+
+    font-size: 12px;
+
+    font-weight: 700;
+}
+
+
+.system.online {
+
+    color:
+        var(--green);
+}
+
+
+.system.warning {
+
+    color:
+        var(--red);
+}
+
+
+.updated {
+
+    color:
+        var(--muted);
+
+    font-size: 10px;
+}
+
+
+/* =====================================================
+   SENSOR GRID
+===================================================== */
+
+.sensor-grid {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, 1fr);
+
+    gap: 10px;
+
+    margin-bottom: 12px;
+
+}
+
+
+.card {
+
+    background:
+        var(--card);
+
+    border:
+        1px solid
+        var(--border);
+
+    border-radius: 15px;
+
+    padding: 15px;
+
+    min-height: 130px;
+
+    box-shadow:
+        0 4px 14px
+        rgba(213, 110, 150, .06);
+
+}
+
+
+.card-top {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content:
+        space-between;
+
+}
+
+
+.card-name {
+
+    color:
+        var(--muted);
+
+    font-size: 10px;
+
+    font-weight: 700;
+
+    letter-spacing: .5px;
+
+}
+
+
+.icon {
+
+    width: 28px;
+    height: 28px;
+
+    display: grid;
+
+    place-items: center;
+
+    border-radius: 9px;
+
+    background:
+        #fff1f6;
+
+    color:
+        var(--pink-dark);
+
+}
+
+
+.value {
+
+    margin-top: 17px;
+
+    font-size: 27px;
+
+    font-weight: 700;
+
+    letter-spacing: -1px;
+
+}
+
+
+.description {
+
+    margin-top: 4px;
+
+    color:
+        var(--muted);
+
+    font-size: 9px;
+
+}
+
+
+/* ACCENT */
+
+.gas {
+    border-top:
+        3px solid
+        var(--pink);
+}
+
+.humidity {
+    border-top:
+        3px solid
+        #82bde2;
+}
+
+.temperature {
+    border-top:
+        3px solid
+        var(--yellow);
+}
+
+.distance {
+    border-top:
+        3px solid
+        var(--green);
+}
+
+
+/* =====================================================
+   LOWER GRID
+===================================================== */
+
+.lower-grid {
+
+    display: grid;
+
+    grid-template-columns:
+        1fr 1fr;
+
+    gap: 10px;
+
+}
+
+
+/* =====================================================
+   STATUS CARD
+===================================================== */
+
+.status-card {
+
+    background:
+        var(--card);
+
+    border:
+        1px solid
+        var(--border);
+
+    border-radius: 15px;
+
+    padding: 16px;
+
+}
+
+
+.section-title {
+
+    font-size: 12px;
+
+    font-weight: 700;
+
+    margin-bottom: 14px;
+
+}
+
+
+.status-row {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content:
+        space-between;
+
+    padding:
+        11px 0;
+
+    border-bottom:
+        1px solid
+        #f8e8ee;
+
+}
+
+
+.status-row:last-child {
+
+    border-bottom: none;
+
+}
+
+
+.status-label {
+
+    color:
+        var(--muted);
+
+    font-size: 10px;
+
+}
+
+
+.status {
+
+    padding:
+        5px 9px;
+
+    border-radius: 8px;
+
+    font-size: 10px;
+
+    font-weight: 700;
+
+}
+
+
+.status.safe {
+
+    color:
+        #4eaa90;
+
+    background:
+        #eaf9f4;
+
+}
+
+
+.status.danger {
+
+    color:
+        #d9547e;
+
+    background:
+        #ffedf3;
+
+}
+
+
+/* =====================================================
+   OUTDOOR CARD
+===================================================== */
+
+.outdoor-card {
+
+    background:
+        linear-gradient(
+            145deg,
+            #fff,
+            #fff5f9
+        );
+
+    border:
+        1px solid
+        var(--border);
+
+    border-radius: 15px;
+
+    padding: 16px;
+
+}
+
+
+.outdoor-title {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    font-size: 12px;
+
+    font-weight: 700;
+
+}
+
+
+.outdoor-icon {
+
+    width: 34px;
+    height: 34px;
+
+    display: grid;
+
+    place-items: center;
+
+    border-radius: 11px;
+
+    background:
+        var(--pink-light);
+
+    font-size: 17px;
+
+}
+
+
+.outdoor-text {
+
+    margin-top: 15px;
+
+    font-size: 11px;
+
+    line-height: 1.7;
+
+    color:
+        var(--muted);
+
+}
+
+
+.tip {
+
+    margin-top: 12px;
+
+    padding: 10px;
+
+    border-radius: 10px;
+
+    background:
+        #fff0f6;
+
+    color:
+        #a8677d;
+
+    font-size: 9px;
+
+}
+
+
+/* =====================================================
+   FOOTER
+===================================================== */
+
+.footer {
+
+    margin-top: 13px;
+
+    text-align: center;
+
+    color:
+        var(--muted);
+
+    font-size: 9px;
+
+}
+
+
+/* =====================================================
+   RESPONSIVE
+===================================================== */
+
+@media(max-width:850px) {
+
+    .sensor-grid {
+
+        grid-template-columns:
+            repeat(2, 1fr);
+
+    }
+
+}
+
+
+@media(max-width:600px) {
+
+    .app {
+
+        width:
+            calc(100% - 18px);
+
+        padding-top: 12px;
+
+    }
+
+
+    .header {
+
+        align-items:
+            flex-start;
+
+    }
+
+
+    .connection {
+
+        font-size: 9px;
+
+    }
+
+
+    .lower-grid {
+
+        grid-template-columns:
+            1fr;
+
+    }
+
+
+    .value {
+
+        font-size: 23px;
+
+    }
+
+
+    .system-bar {
+
+        align-items:
+            flex-start;
+
+        flex-direction:
+            column;
+
+    }
+
+}
+
+
+@media(max-width:400px) {
+
+    .sensor-grid {
+
+        gap: 7px;
+
+    }
+
+
+    .card {
+
+        padding: 12px;
+
+        min-height: 120px;
+
+    }
+
+
+    .value {
+
+        font-size: 21px;
+
+    }
+
+}
+
+</style>
+</head>
+
+
+<body>
+
+<div class="app">
+
+
+<!-- =====================================================
+     HEADER
+===================================================== -->
+
+<header class="header">
+
+    <div class="brand">
+
+        <div class="logo">
+            ♡
+        </div>
+
+        <div>
+
+            <div class="title">
+                PinkSense
+            </div>
+
+            <div class="subtitle">
+                Outdoor Environmental Monitor
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="connection"
+         id="firebaseStatus">
+
+        ○ Connecting...
+
+    </div>
+
+</header>
+
+
+<!-- =====================================================
+     SYSTEM
+===================================================== -->
+
+<section class="system-bar">
+
+    <div
+        id="systemStatus"
+        class="system online">
+
+        Sistem Normal
+
+    </div>
+
+
+    <div class="updated">
+
+        Update:
+        <span id="lastUpdate">
+            menunggu...
+        </span>
+
+    </div>
+
+</section>
+
+
+<!-- =====================================================
+     SENSOR CARDS
+===================================================== -->
+
+<section class="sensor-grid">
+
+
+    <!-- GAS -->
+
+    <article class="card gas">
+
+        <div class="card-top">
+
+            <div class="card-name">
+                MQ-2 GAS
+            </div>
+
+            <div class="icon">
+                ♡
+            </div>
+
+        </div>
+
+        <div
+            class="value"
+            id="gas">
+
+            —
+
+        </div>
+
+        <div class="description">
+            Gas concentration / ADC
+        </div>
+
+    </article>
+
+
+    <!-- HUMIDITY -->
+
+    <article class="card humidity">
+
+        <div class="card-top">
+
+            <div class="card-name">
+                HUMIDITY
+            </div>
+
+            <div class="icon">
+                💧
+            </div>
+
+        </div>
+
+        <div
+            class="value"
+            id="humidity">
+
+            —
+
+        </div>
+
+        <div class="description">
+            Kelembapan udara
+        </div>
+
+    </article>
+
+
+    <!-- TEMPERATURE -->
+
+    <article class="card temperature">
+
+        <div class="card-top">
+
+            <div class="card-name">
+                TEMPERATURE
+            </div>
+
+            <div class="icon">
+                ☀
+            </div>
+
+        </div>
+
+        <div
+            class="value"
+            id="temperature">
+
+            —
+
+        </div>
+
+        <div class="description">
+            Suhu lingkungan
+        </div>
+
+    </article>
+
+
+    <!-- DISTANCE -->
+
+    <article class="card distance">
+
+        <div class="card-top">
+
+            <div class="card-name">
+                DISTANCE
+            </div>
+
+            <div class="icon">
+                ⌁
+            </div>
+
+        </div>
+
+        <div
+            class="value"
+            id="distance">
+
+            —
+
+        </div>
+
+        <div class="description">
+            Ultrasonic radar
+        </div>
+
+    </article>
+
+
+</section>
+
+
+<!-- =====================================================
+     LOWER
+===================================================== -->
+
+<section class="lower-grid">
+
+
+    <!-- ROBOT STATUS -->
+
+    <article class="status-card">
+
+        <div class="section-title">
+            🤖 Robot & Alarm
+        </div>
+
+
+        <div class="status-row">
+
+            <span class="status-label">
+                Robot Action
+            </span>
+
+            <span
+                id="robot"
+                class="status safe">
+
+                Menunggu
+
+            </span>
+
+        </div>
+
+
+        <div class="status-row">
+
+            <span class="status-label">
+                Buzzer
+            </span>
+
+            <span
+                id="buzzer"
+                class="status safe">
+
+                Standby
+
+            </span>
+
+        </div>
+
+
+        <div class="status-row">
+
+            <span class="status-label">
+                Radar threshold
+            </span>
+
+            <span class="status safe">
+                25 cm
+            </span>
+
+        </div>
+
+
+    </article>
+
+
+    <!-- OUTDOOR -->
+
+    <article class="outdoor-card">
+
+        <div class="outdoor-title">
+
+            <div class="outdoor-icon">
+                🌷
+            </div>
+
+            Outdoor Monitor
+
+        </div>
+
+
+        <div class="outdoor-text">
+
+            Monitoring lingkungan secara
+            realtime melalui ESP32 dan
+            Firebase Realtime Database.
+
+        </div>
+
+
+        <div class="tip">
+
+            ♡ Data sensor diperbarui
+            langsung ketika ESP32 mengirim
+            perubahan ke Firebase.
+
+        </div>
+
+    </article>
+
+
+</section>
+
+
+<footer class="footer">
+
+    PinkSense • ESP32 Telemetry
+    • Realtime Monitoring
+
+</footer>
+
+
+</div>
+
 </body>
 </html>
