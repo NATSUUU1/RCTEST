@@ -1,56 +1,599 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PinkSense • Realtime Telemetry Monitor</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Quicksand:wght@500;600;700&display=swap');
+
+:root{
+  --bg:#fff7fb;
+  --card:rgba(255,255,255,.90);
+  --pink:#f47aaa;
+  --pink2:#ffb7d2;
+  --rose:#e85d93;
+  --lav:#b79bea;
+  --mint:#7bcfba;
+  --yellow:#f3bd65;
+  --blue:#77bfe4;
+  --text:#573f4c;
+  --muted:#9b7f8c;
+  --line:rgba(232,93,147,.13);
+  --shadow:0 18px 50px rgba(183,93,133,.12);
+}
+
+*{box-sizing:border-box}
+
+html{
+  scroll-behavior:smooth;
+}
+
+body{
+  margin:0;
+  min-height:100vh;
+  color:var(--text);
+  font-family:"DM Sans",sans-serif;
+  background:
+    radial-gradient(circle at 10% 10%,rgba(255,183,210,.35),transparent 30%),
+    radial-gradient(circle at 90% 20%,rgba(183,155,234,.20),transparent 28%),
+    linear-gradient(135deg,#fff7fb,#fffafd 55%,#fff4f9);
+  overflow-x:hidden;
+}
+
+body:before{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  opacity:.35;
+  background-image:radial-gradient(#ef9db9 1px,transparent 1px);
+  background-size:24px 24px;
+  mask-image:linear-gradient(#000,transparent 75%);
+}
+
+.shell{
+  width:min(1400px,calc(100% - 30px));
+  margin:auto;
+  padding:22px 0 35px;
+}
+
+header{
+  position:relative;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:20px;
+  padding:20px 24px;
+  margin-bottom:15px;
+  border:1px solid var(--line);
+  border-radius:28px;
+  background:var(--card);
+  backdrop-filter:blur(18px);
+  box-shadow:var(--shadow);
+}
+
+.brand{
+  display:flex;
+  align-items:center;
+  gap:15px;
+}
+
+.logo{
+  width:52px;
+  height:52px;
+  display:grid;
+  place-items:center;
+  border-radius:18px;
+  background:linear-gradient(145deg,#ff9fc3,#e983b0);
+  color:white;
+  font-size:25px;
+  box-shadow:0 10px 25px rgba(232,93,147,.24);
+  transform:rotate(-5deg);
+}
+
+.eyebrow{
+  color:var(--rose);
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:2.5px;
+}
+
+h1{
+  margin:3px 0 0;
+  font:700 25px Quicksand,sans-serif;
+}
+
+.subtitle{
+  color:var(--muted);
+  font-size:12px;
+  margin-top:3px;
+}
+
+.operator{
+  text-align:right;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.7;
+}
+
+.operator b{
+  color:var(--text);
+}
+
+.status{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-bottom:15px;
+  padding:13px 17px;
+  border:1px solid rgba(123,207,186,.3);
+  border-radius:18px;
+  background:rgba(255,255,255,.90);
+  box-shadow:var(--shadow);
+  transition:background .2s ease,border-color .2s ease;
+}
+
+.status-left{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-weight:700;
+  font-size:13px;
+}
+
+.dot{
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  background:var(--mint);
+  box-shadow:0 0 0 5px rgba(123,207,186,.13),0 0 14px rgba(123,207,186,.7);
+}
+
+.status.danger{
+  border-color:rgba(232,93,147,.35);
+  background:#fff1f6;
+}
+
+.status.danger .dot{
+  background:var(--rose);
+  box-shadow:0 0 0 5px rgba(232,93,147,.12),0 0 16px rgba(232,93,147,.65);
+}
+
+.status small{
+  color:var(--muted);
+}
+
+#connection{
+  font-weight:700;
+}
+
+.metrics{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:13px;
+  margin-bottom:15px;
+}
+
+.metric{
+  position:relative;
+  overflow:hidden;
+  padding:18px;
+  border:1px solid var(--line);
+  border-radius:22px;
+  background:var(--card);
+  box-shadow:var(--shadow);
+  transition:transform .2s ease;
+}
+
+.metric:hover{
+  transform:translateY(-2px);
+}
+
+.metric:after{
+  content:"";
+  position:absolute;
+  width:110px;
+  height:110px;
+  right:-45px;
+  top:-45px;
+  border-radius:50%;
+  background:var(--accent);
+  filter:blur(28px);
+  opacity:.2;
+  pointer-events:none;
+}
+
+.metric-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:.5px;
+}
+
+.metric-icon{
+  color:var(--accent);
+  font-size:17px;
+}
+
+.value{
+  margin:8px 0 1px;
+  font:700 28px Quicksand,sans-serif;
+  color:var(--text);
+}
+
+.unit{
+  color:var(--muted);
+  font-size:11px;
+}
+
+.sensor-wheel{
+  width:12px;
+  height:12px;
+  border-radius:50%;
+  background:#dcd6db;
+  box-shadow:0 0 8px rgba(0,0,0,.1);
+  transition:transform .12s ease,box-shadow .12s ease,background .12s ease;
+  display:inline-block;
+}
+
+.sensor-wheel.active{
+  background:var(--accent);
+  box-shadow:0 0 12px var(--accent);
+}
+
+.sensor-wheel.flash{
+  transform:scale(1.35);
+}
+
+.gas{--accent:var(--rose)}
+.hum{--accent:var(--blue)}
+.temp{--accent:var(--yellow)}
+.dist{--accent:var(--mint)}
+.action{--accent:var(--lav)}
+.buzzer{--accent:var(--pink2)}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:15px;
+}
+
+.card{
+  min-height:325px;
+  padding:17px;
+  border:1px solid var(--line);
+  border-radius:23px;
+  background:var(--card);
+  box-shadow:var(--shadow);
+  backdrop-filter:blur(16px);
+}
+
+.card-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:6px;
+}
+
+.card-title{
+  font-weight:700;
+  font-size:13px;
+}
+
+.live{
+  color:var(--rose);
+  font-size:9px;
+  letter-spacing:1.5px;
+  font-weight:800;
+  background:#fff0f6;
+  padding:5px 8px;
+  border-radius:20px;
+}
+
+.chart-wrap{
+  height:255px;
+}
+
+canvas{
+  width:100%!important;
+  height:100%!important;
+}
+
+footer{
+  display:flex;
+  justify-content:space-between;
+  color:var(--muted);
+  font-size:10px;
+  padding:16px 4px 0;
+}
+
+@media(max-width:900px){
+  .metrics{grid-template-columns:repeat(2,1fr)}
+  .grid{grid-template-columns:1fr}
+  header{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+  .operator{text-align:left}
+}
+
+@media(max-width:520px){
+  .shell{
+    width:calc(100% - 18px);
+    padding-top:10px;
+  }
+
+  .metrics{gap:8px}
+
+  .metric{padding:14px}
+
+  .value{font-size:20px}
+
+  .status{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .card{min-height:300px}
+
+  .chart-wrap{height:230px}
+
+  footer{
+    flex-direction:column;
+    gap:5px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="shell">
+
+<header>
+  <div class="brand">
+    <div class="logo">♡</div>
+
+    <div>
+      <div class="eyebrow">PINKSENSE / REALTIME TELEMETRY</div>
+      <h1>Environmental & Radar Monitor</h1>
+      <div class="subtitle">
+        Cute dashboard • Firebase realtime • ultra-low render delay
+      </div>
+    </div>
+  </div>
+
+  <div class="operator">
+    OPERATOR <b>KELOMPOK 2 GACOR</b><br>
+    ID <b>ROBOTIKA</b> · CLASS <b>2TE1</b>
+  </div>
+</header>
+
+
+<section id="status" class="status">
+
+  <div class="status-left">
+    <span class="dot"></span>
+    <span id="statusText">Menghubungkan ke sensor...</span>
+  </div>
+
+  <small id="lastUpdate">Menunggu data realtime...</small>
+
+</section>
+
+
+<section class="metrics">
+
+  <div class="metric gas">
+    <div class="metric-top">
+      <span>MQ-2 GAS</span>
+      <div>
+        <span id="wheelGas" class="sensor-wheel"></span>
+        <span class="metric-icon">♡</span>
+      </div>
+    </div>
+
+    <div id="gasValue" class="value">—</div>
+    <div class="unit">ADC / 4095</div>
+  </div>
+
+
+  <div class="metric hum">
+    <div class="metric-top">
+      <span>HUMIDITY</span>
+      <div>
+        <span id="wheelHum" class="sensor-wheel"></span>
+        <span class="metric-icon">◌</span>
+      </div>
+    </div>
+
+    <div id="humValue" class="value">—</div>
+    <div class="unit">% RH</div>
+  </div>
+
+
+  <div class="metric temp">
+    <div class="metric-top">
+      <span>TEMPERATURE</span>
+      <div>
+        <span id="wheelTemp" class="sensor-wheel"></span>
+        <span class="metric-icon">☼</span>
+      </div>
+    </div>
+
+    <div id="tempValue" class="value">—</div>
+    <div class="unit">°C</div>
+  </div>
+
+
+  <div class="metric dist">
+    <div class="metric-top">
+      <span>DISTANCE</span>
+      <div>
+        <span id="wheelDist" class="sensor-wheel"></span>
+        <span class="metric-icon">⌁</span>
+      </div>
+    </div>
+
+    <div id="distValue" class="value">—</div>
+    <div class="unit">cm (Radar)</div>
+  </div>
+
+
+  <div class="metric action">
+    <div class="metric-top">
+      <span>ROBOT ACTION</span>
+      <div>
+        <span id="wheelAction" class="sensor-wheel"></span>
+        <span class="metric-icon">🚀</span>
+      </div>
+    </div>
+
+    <div id="actionValue" class="value">—</div>
+    <div class="unit">Status Kemudi Otomatis</div>
+  </div>
+
+
+  <div class="metric buzzer">
+    <div class="metric-top">
+      <span>BUZZER ALARM</span>
+      <div>
+        <span id="wheelBuzzer" class="sensor-wheel"></span>
+        <span class="metric-icon">🔔</span>
+      </div>
+    </div>
+
+    <div id="buzzerValue" class="value">—</div>
+    <div class="unit">Sistem Peringatan</div>
+  </div>
+
+</section>
+
+
+<main class="grid">
+
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title">♡ Kadar Gas · MQ-2</div>
+      <div class="live">● REALTIME</div>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="gasChart"></canvas>
+    </div>
+  </div>
+
+
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title">💧 Kelembapan</div>
+      <div class="live">● REALTIME</div>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="humChart"></canvas>
+    </div>
+  </div>
+
+
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title">☼ Suhu Ruang</div>
+      <div class="live">● REALTIME</div>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="tempChart"></canvas>
+    </div>
+  </div>
+
+
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title">⌁ Jarak Radar Ultrasonik</div>
+      <div class="live">● REALTIME</div>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="distChart"></canvas>
+    </div>
+  </div>
+
+</main>
+
+
+<footer>
+  <span>Firebase Realtime Database · Direct Event Rendering</span>
+  <span id="connection">CONNECTING…</span>
+</footer>
+
+</div>
+
+
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import {
-  getDatabase,
-  ref,
-  onValue
-} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
 /* =========================================================
    FIREBASE
 ========================================================= */
+
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+
+import {
+  getDatabase,
+  ref,
+  onValue
+}
+from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
 
 const firebaseConfig = {
   databaseURL:
     "https://rc-telementri-default-rtdb.asia-southeast1.firebasedatabase.app"
 };
 
+
 const app = initializeApp(firebaseConfig);
+
 const db = getDatabase(app);
 
 
 /* =========================================================
-   ELEMENT CACHE
-   Supaya browser tidak berulang kali mencari elemen HTML
+   CACHE ELEMENT HTML
 ========================================================= */
 
 const $ = id => document.getElementById(id);
 
 const el = {
-  gas: $("gasValue"),
-  hum: $("humValue"),
-  temp: $("tempValue"),
-  dist: $("distValue"),
 
-  action: $("actionValue"),
-  buzzer: $("buzzerValue"),
+  gas:$("gasValue"),
+  hum:$("humValue"),
+  temp:$("tempValue"),
+  dist:$("distValue"),
 
-  status: $("status"),
-  statusText: $("statusText"),
-  lastUpdate: $("lastUpdate"),
-  connection: $("connection"),
+  action:$("actionValue"),
+  buzzer:$("buzzerValue"),
 
-  wheelGas: $("wheelGas"),
-  wheelHum: $("wheelHum"),
-  wheelTemp: $("wheelTemp"),
-  wheelDist: $("wheelDist"),
-  wheelAction: $("wheelAction"),
-  wheelBuzzer: $("wheelBuzzer")
+  status:$("status"),
+  statusText:$("statusText"),
+  lastUpdate:$("lastUpdate"),
+  connection:$("connection"),
+
+  wheelGas:$("wheelGas"),
+  wheelHum:$("wheelHum"),
+  wheelTemp:$("wheelTemp"),
+  wheelDist:$("wheelDist"),
+  wheelAction:$("wheelAction"),
+  wheelBuzzer:$("wheelBuzzer")
 };
 
 
 /* =========================================================
-   CHART CONFIG
+   CHART SETTINGS
 ========================================================= */
 
 const maxPoints = 15;
@@ -60,89 +603,90 @@ Chart.defaults.font.family = "DM Sans";
 Chart.defaults.font.size = 10;
 
 
-function createChart(id, label, color, max) {
+function createChart(id,label,color,max){
 
-  return new Chart($(id), {
+  return new Chart($(id),{
 
-    type: "line",
+    type:"line",
 
-    data: {
-      labels: [],
+    data:{
+      labels:[],
 
-      datasets: [{
-        label: label,
-        data: [],
+      datasets:[{
 
-        borderColor: color,
-        backgroundColor: color + "18",
+        label:label,
 
-        borderWidth: 2.5,
+        data:[],
 
-        fill: true,
+        borderColor:color,
 
-        tension: 0.3,
+        backgroundColor:color+"18",
 
-        pointRadius: 0,
-        pointHoverRadius: 5
+        borderWidth:2.5,
+
+        fill:true,
+
+        tension:.3,
+
+        pointRadius:0,
+
+        pointHoverRadius:5
       }]
     },
 
-    options: {
+    options:{
 
-      responsive: true,
+      responsive:true,
 
-      maintainAspectRatio: false,
+      maintainAspectRatio:false,
 
-      /* Penting:
-         Tidak ada animasi grafik yang berat */
-      animation: false,
+      animation:false,
 
-      interaction: {
-        intersect: false,
-        mode: "index"
+      interaction:{
+        intersect:false,
+        mode:"index"
       },
 
-      plugins: {
+      plugins:{
 
-        legend: {
-          display: false
+        legend:{
+          display:false
         },
 
-        tooltip: {
-          displayColors: false,
-          backgroundColor: "#573f4c",
-          padding: 10,
-          cornerRadius: 10
+        tooltip:{
+          displayColors:false,
+          backgroundColor:"#573f4c",
+          padding:10,
+          cornerRadius:10
         }
       },
 
-      scales: {
+      scales:{
 
-        y: {
-          min: 0,
-          suggestedMax: max,
+        y:{
+          min:0,
+          suggestedMax:max,
 
-          border: {
-            display: false
+          border:{
+            display:false
           },
 
-          grid: {
-            color: "rgba(180,130,150,.10)"
+          grid:{
+            color:"rgba(180,130,150,.10)"
           }
         },
 
-        x: {
-
-          border: {
-            display: false
+        x:{
+          border:{
+            display:false
           },
 
-          grid: {
-            display: false
+          grid:{
+            display:false
           },
 
-          ticks: {
-            maxTicksLimit: 6
+          ticks:{
+            maxTicksLimit:6
           }
         }
       }
@@ -152,27 +696,27 @@ function createChart(id, label, color, max) {
 
 
 /* =========================================================
-   CREATE CHART
+   CHARTS
 ========================================================= */
 
 const gasChart =
-  createChart("gasChart", "Gas", "#e85d93", 4095);
+  createChart("gasChart","Gas","#e85d93",4095);
 
 const humChart =
-  createChart("humChart", "Humidity", "#77bfe4", 100);
+  createChart("humChart","Humidity","#77bfe4",100);
 
 const tempChart =
-  createChart("tempChart", "Temperature", "#f3bd65", 50);
+  createChart("tempChart","Temperature","#f3bd65",50);
 
 const distChart =
-  createChart("distChart", "Distance", "#7bcfba", 200);
+  createChart("distChart","Distance","#7bcfba",200);
 
 
 /* =========================================================
-   UPDATE TEXT
+   TEXT UPDATE
 ========================================================= */
 
-function setText(element, value, decimal = 0) {
+function setText(element,value,decimal=0){
 
   const number = Number(value);
 
@@ -184,61 +728,79 @@ function setText(element, value, decimal = 0) {
 
 
 /* =========================================================
-   UPDATE CHART
+   CHART UPDATE
 ========================================================= */
 
-function addPoint(chart, value, label) {
+function addPoint(chart,value,label){
 
   chart.data.labels.push(label);
 
   chart.data.datasets[0].data.push(value);
 
-  if (chart.data.labels.length > maxPoints) {
+  if(chart.data.labels.length > maxPoints){
 
     chart.data.labels.shift();
 
     chart.data.datasets[0].data.shift();
   }
 
-  /* Update langsung tanpa animasi */
   chart.update("none");
 }
 
 
 /* =========================================================
-   SENSOR DATA
+   SENSOR WHEEL FLASH
 ========================================================= */
 
-const sensorRef = ref(db, "Sensor");
+function flashWheel(wheel){
+
+  wheel.classList.add("active");
+  wheel.classList.add("flash");
+
+  requestAnimationFrame(()=>{
+
+    requestAnimationFrame(()=>{
+
+      wheel.classList.remove("flash");
+
+    });
+
+  });
+}
 
 
-/*
-   ========================================================
-   PENTING
+/* =========================================================
+   REALTIME SENSOR LISTENER
+=========================================================
 
-   Data diproses LANGSUNG di dalam onValue().
+   DATA DARI FIREBASE LANGSUNG DIPROSES DI SINI.
 
-   Tidak menggunakan:
+   TIDAK ADA:
+       setInterval()
+       delay 1000 ms
+       buffer render 1 detik
 
-       setInterval(..., 1000)
+   Begitu Firebase menerima perubahan,
+   halaman langsung diperbarui.
+========================================================= */
 
-   sehingga tidak ada delay buatan 1 detik.
-   ========================================================
-*/
+const sensorRef = ref(db,"Sensor");
+
 
 onValue(
+
   sensorRef,
 
   snapshot => {
 
     const data = snapshot.val();
 
-    if (!data) return;
+    if(!data) return;
 
 
-    /* =====================================================
-       BACA SENSOR
-    ===================================================== */
+    /* -----------------------------------------------------
+       SENSOR
+    ----------------------------------------------------- */
 
     const gas =
       Number(data.Gas) || 0;
@@ -253,34 +815,52 @@ onValue(
       Number(data.Jarak) || 0;
 
 
-    /* =====================================================
-       WAKTU UPDATE
-    ===================================================== */
+    /* -----------------------------------------------------
+       TIME
+    ----------------------------------------------------- */
 
     const now = new Date();
 
     const time =
-      now.toLocaleTimeString("id-ID", {
-        hour12: false
-      });
+      now.toLocaleTimeString(
+        "id-ID",
+        {
+          hour12:false
+        }
+      );
 
 
-    /* =====================================================
-       UPDATE ANGKA SENSOR
-    ===================================================== */
+    /* -----------------------------------------------------
+       DISPLAY
+    ----------------------------------------------------- */
 
-    setText(el.gas, gas);
+    setText(
+      el.gas,
+      gas
+    );
 
-    setText(el.hum, hum, 1);
+    setText(
+      el.hum,
+      hum,
+      1
+    );
 
-    setText(el.temp, temp, 1);
+    setText(
+      el.temp,
+      temp,
+      1
+    );
 
-    setText(el.dist, dist, 1);
+    setText(
+      el.dist,
+      dist,
+      1
+    );
 
 
-    /* =====================================================
-       UPDATE GRAFIK
-    ===================================================== */
+    /* -----------------------------------------------------
+       CHART
+    ----------------------------------------------------- */
 
     addPoint(
       gasChart,
@@ -307,18 +887,22 @@ onValue(
     );
 
 
-    /* =====================================================
+    /* -----------------------------------------------------
        ALARM
-    ===================================================== */
+    ----------------------------------------------------- */
 
     const alarm =
       gas > 2000 ||
       hum > 80;
 
 
-    if (alarm) {
+    el.status.classList.toggle(
+      "danger",
+      alarm
+    );
 
-      el.status.classList.add("danger");
+
+    if(alarm){
 
       el.statusText.textContent =
         "⚠ WARNING · THRESHOLD EXCEEDED";
@@ -329,9 +913,7 @@ onValue(
       el.buzzer.style.color =
         "var(--rose)";
 
-    } else {
-
-      el.status.classList.remove("danger");
+    }else{
 
       el.statusText.textContent =
         "♡ SYSTEM ONLINE · REALTIME";
@@ -344,16 +926,16 @@ onValue(
     }
 
 
-    /* =====================================================
-       RADAR / ROBOT
-    ===================================================== */
+    /* -----------------------------------------------------
+       OBSTACLE
+    ----------------------------------------------------- */
 
     const isObstacle =
       dist > 0 &&
       dist < 25;
 
 
-    if (isObstacle) {
+    if(isObstacle){
 
       el.action.textContent =
         "MENGHINDAR";
@@ -361,7 +943,7 @@ onValue(
       el.action.style.color =
         "var(--rose)";
 
-    } else {
+    }else{
 
       el.action.textContent =
         "MAJU (AMAN)";
@@ -371,24 +953,19 @@ onValue(
     }
 
 
-    /* =====================================================
+    /* -----------------------------------------------------
        SENSOR WHEELS
-    ===================================================== */
+    ----------------------------------------------------- */
 
-    el.wheelGas.classList.add("active");
-
-    el.wheelHum.classList.add("active");
-
-    el.wheelTemp.classList.add("active");
-
-    el.wheelDist.classList.add("active");
-
+    flashWheel(el.wheelGas);
+    flashWheel(el.wheelHum);
+    flashWheel(el.wheelTemp);
+    flashWheel(el.wheelDist);
 
     el.wheelAction.classList.toggle(
       "active",
       isObstacle
     );
-
 
     el.wheelBuzzer.classList.toggle(
       "active",
@@ -396,18 +973,18 @@ onValue(
     );
 
 
-    /* =====================================================
-       LAST UPDATE
-    ===================================================== */
+    /* -----------------------------------------------------
+       UPDATE TIME
+    ----------------------------------------------------- */
 
     el.lastUpdate.textContent =
       "⚡ Realtime " + time;
   },
 
 
-  /* =======================================================
-     ERROR
-  ======================================================= */
+  /* -------------------------------------------------------
+     FIREBASE ERROR
+  ------------------------------------------------------- */
 
   error => {
 
@@ -422,18 +999,20 @@ onValue(
       error
     );
   }
+
 );
 
 
 /* =========================================================
-   FIREBASE CONNECTION MONITOR
+   FIREBASE CONNECTION
 ========================================================= */
 
 const connectedRef =
-  ref(db, ".info/connected");
+  ref(db,".info/connected");
 
 
 onValue(
+
   connectedRef,
 
   snapshot => {
@@ -442,16 +1021,22 @@ onValue(
       snapshot.val() === true;
 
 
-    if (online) {
+    if(online){
 
       el.connection.textContent =
         "● FIREBASE CONNECTED · REALTIME";
 
-    } else {
+    }else{
 
       el.connection.textContent =
         "○ FIREBASE OFFLINE";
     }
+
   }
+
 );
+
 </script>
+
+</body>
+</html>
