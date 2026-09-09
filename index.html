@@ -1,451 +1,311 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RC Car Monitor - IoT Dashboard</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #ffe6ea 0%, #ffb3c6 100%);
-      min-height: 100vh;
-      padding: 20px;
-    }
-    
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-    
-    h1 {
-      text-align: center;
-      color: #d63384;
-      margin-bottom: 30px;
-      font-size: 2.5rem;
-      text-shadow: 2px 2px 4px rgba(214, 51, 132, 0.3);
-    }
-    
-    .dashboard {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 25px;
-      margin-bottom: 30px;
-    }
-    
-    .card {
-      background: rgba(255, 255, 255, 0.9);
-      border-radius: 20px;
-      padding: 25px;
-      text-align: center;
-      box-shadow: 0 8px 32px rgba(214, 51, 132, 0.15);
-      border: 2px solid #ffc2d1;
-      transition: transform 0.3s ease;
-    }
-    
-    .card:hover {
-      transform: translateY(-5px);
-    }
-    
-    .card h2 {
-      color: #d63384;
-      margin-bottom: 20px;
-      font-size: 1.5rem;
-    }
-    
-    .gauge-container {
-      position: relative;
-      width: 200px;
-      height: 200px;
-      margin: 0 auto;
-    }
-    
-    .gauge {
-      width: 100%;
-      height: 100%;
-      border-radius: 50%;
-      background: conic-gradient(from 180deg, 
-        #ff6b9c 0deg, 
-        #ff6b9c var(--value-deg, 0deg), 
-        #ffe6ea var(--value-deg, 0deg), 
-        #ffe6ea 360deg);
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: inset 0 0 20px rgba(214, 51, 132, 0.2);
-      transition: --value-deg 0.5s ease;
-    }
-    
-    .gauge::before {
-      content: '';
-      position: absolute;
-      width: 140px;
-      height: 140px;
-      background: white;
-      border-radius: 50%;
-    }
-    
-    .gauge-value {
-      position: relative;
-      z-index: 1;
-      font-size: 2rem;
-      font-weight: bold;
-      color: #d63384;
-    }
-    
-    .gauge-label {
-      position: absolute;
-      bottom: 40px;
-      font-size: 0.9rem;
-      color: #a64ca6;
-    }
-    
-    .value-display {
-      font-size: 2.5rem;
-      font-weight: bold;
-      color: #d63384;
-      margin: 15px 0;
-    }
-    
-    .unit {
-      font-size: 1.2rem;
-      color: #a64ca6;
-    }
-    
-    .status {
-      padding: 10px 20px;
-      border-radius: 25px;
-      font-weight: bold;
-      display: inline-block;
-      margin-top: 10px;
-    }
-    
-    .status-safe {
-      background: #d4edda;
-      color: #155724;
-    }
-    
-    .status-warning {
-      background: #fff3cd;
-      color: #856404;
-    }
-    
-    .status-danger {
-      background: #f8d7da;
-      color: #721c24;
-    }
-    
-    .refresh-btn {
-      display: block;
-      margin: 30px auto;
-      padding: 15px 40px;
-      background: linear-gradient(135deg, #d63384, #ff6b9c);
-      color: white;
-      border: none;
-      border-radius: 30px;
-      font-size: 1.2rem;
-      font-weight: bold;
-      cursor: pointer;
-      box-shadow: 0 4px 15px rgba(214, 51, 132, 0.4);
-      transition: all 0.3s ease;
-    }
-    
-    .refresh-btn:hover {
-      transform: scale(1.05);
-      box-shadow: 0 6px 20px rgba(214, 51, 132, 0.6);
-    }
-    
-    .last-update {
-      text-align: center;
-      color: #a64ca6;
-      font-size: 0.9rem;
-      margin-top: 20px;
-    }
-    
-    .connection-status {
-      text-align: center;
-      padding: 10px;
-      margin-bottom: 20px;
-      border-radius: 10px;
-      font-weight: bold;
-    }
-    
-    .connected {
-      background: #d4edda;
-      color: #155724;
-    }
-    
-    .disconnected {
-      background: #f8d7da;
-      color: #721c24;
-    }
-    
-    .api-info {
-      background: rgba(255, 255, 255, 0.8);
-      padding: 20px;
-      border-radius: 15px;
-      margin-top: 30px;
-      border: 2px dashed #d63384;
-    }
-    
-    .api-info h3 {
-      color: #d63384;
-      margin-bottom: 15px;
-    }
-    
-    .api-info code {
-      background: #ffe6ea;
-      padding: 2px 8px;
-      border-radius: 5px;
-      color: #d63384;
-      font-family: 'Courier New', monospace;
-    }
-    
-    @media (max-width: 768px) {
-      h1 {
-        font-size: 2rem;
-      }
-      
-      .dashboard {
-        grid-template-columns: 1fr;
-      }
-      
-      .gauge-container {
-        width: 150px;
-        height: 150px;
-      }
-      
-      .gauge-value {
-        font-size: 1.5rem;
-      }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Telemetri Mobil RC</title>
+    <style>
+        :root {
+            --bg-color: #FFF0F5; /* Lavender Blush - Soft Pink */
+            --card-bg: #FFFFFF;
+            --text-dark: #5D4037;
+            --pink-main: #FF69B4; /* Hot Pink */
+            --pink-light: #FFE4E1; /* Misty Rose */
+            --pink-dark: #D81B60;
+            --safe-color: #2ED573;
+            --danger-color: #FF4757;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text-dark);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: var(--pink-dark);
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .header p {
+            color: var(--pink-main);
+            margin-top: 0;
+            font-weight: 500;
+        }
+
+        .connection-status {
+            display: inline-block;
+            padding: 5px 15px;
+            background-color: #FFA502;
+            color: white;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 25px;
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 25px 20px;
+            box-shadow: 0 10px 25px rgba(255, 182, 193, 0.4);
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(255, 182, 193, 0.6);
+        }
+
+        .card h3 {
+            margin: 0 0 15px 0;
+            color: var(--pink-dark);
+            font-size: 1.2em;
+        }
+
+        /* Desain Indikator Melingkar (SVG) */
+        .circular-chart {
+            display: block;
+            margin: 0 auto;
+            max-width: 80%;
+            max-height: 250px;
+        }
+
+        .circle-bg {
+            fill: none;
+            stroke: var(--pink-light);
+            stroke-width: 3.8;
+        }
+
+        .circle {
+            fill: none;
+            stroke-width: 2.8;
+            stroke-linecap: round;
+            transition: stroke-dasharray 0.8s ease-out, stroke 0.3s ease;
+        }
+
+        /* Warna spesifik tiap sensor */
+        .color-temp { stroke: #FF7675; } /* Merah pudar untuk suhu */
+        .color-hum { stroke: #74B9FF; }  /* Biru pudar untuk kelembapan */
+        .color-gas { stroke: var(--pink-main); }
+        .color-dist { stroke: #A29BFE; } /* Ungu untuk jarak */
+
+        .percentage {
+            fill: var(--text-dark);
+            font-family: sans-serif;
+            font-size: 0.45em;
+            text-anchor: middle;
+            font-weight: bold;
+        }
+
+        .sensor-label {
+            fill: #999;
+            font-family: sans-serif;
+            font-size: 0.18em;
+            text-anchor: middle;
+        }
+
+        .status-badge {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 6px 15px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            font-weight: bold;
+            color: white;
+            background-color: var(--safe-color);
+            transition: background-color 0.3s ease;
+        }
+
+        .status-danger {
+            background-color: var(--danger-color);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <h1>🚗 RC Car Monitor</h1>
-    
-    <div id="connectionStatus" class="connection-status disconnected">
-      ⚠️ Menunggu koneksi...
+
+    <div class="header">
+        <h1>Dashboard RC Car</h1>
+        <p>IoT Telemetry Monitor - ESP32</p>
+        <div id="conn-status" class="connection-status">Menghubungkan ke Firebase...</div>
     </div>
-    
-    <div class="dashboard">
-      <!-- Temperature Card -->
-      <div class="card">
-        <h2>🌡️ Suhu</h2>
-        <div class="gauge-container">
-          <div class="gauge" id="tempGauge" style="--value-deg: 0deg;">
-            <span class="gauge-value" id="tempValue">0</span>
-          </div>
-          <span class="gauge-label">°C</span>
+
+    <div class="grid-container">
+        <!-- Sensor Suhu (DHT22) -->
+        <div class="card">
+            <h3>Suhu Lingkungan</h3>
+            <svg viewBox="0 0 36 36" class="circular-chart">
+                <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <path class="circle color-temp" id="circle-temp" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <text x="18" y="19" class="percentage" id="val-temp">0</text>
+                <text x="18" y="24" class="sensor-label">°C</text>
+            </svg>
+            <div id="status-temp" class="status-badge">Normal</div>
         </div>
-        <div class="value-display">
-          <span id="tempDisplay">0</span>
-          <span class="unit">°C</span>
+
+        <!-- Sensor Kelembapan (DHT22) -->
+        <div class="card">
+            <h3>Kelembapan Udara</h3>
+            <svg viewBox="0 0 36 36" class="circular-chart">
+                <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <path class="circle color-hum" id="circle-hum" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <text x="18" y="19" class="percentage" id="val-hum">0</text>
+                <text x="18" y="24" class="sensor-label">%</text>
+            </svg>
+            <div id="status-hum" class="status-badge">Normal</div>
         </div>
-        <div class="status status-safe" id="tempStatus">Normal</div>
-      </div>
-      
-      <!-- Humidity Card -->
-      <div class="card">
-        <h2>💧 Kelembapan</h2>
-        <div class="gauge-container">
-          <div class="gauge" id="humGauge" style="--value-deg: 0deg;">
-            <span class="gauge-value" id="humValue">0</span>
-          </div>
-          <span class="gauge-label">%</span>
+
+        <!-- Sensor Gas (MQ-2) -->
+        <div class="card">
+            <h3>Kadar Gas / Asap (MQ-2)</h3>
+            <svg viewBox="0 0 36 36" class="circular-chart">
+                <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <path class="circle color-gas" id="circle-gas" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <text x="18" y="19" class="percentage" id="val-gas">0</text>
+                <text x="18" y="24" class="sensor-label">Raw (ESP32)</text>
+            </svg>
+            <div id="status-gas" class="status-badge">Udara Bersih</div>
         </div>
-        <div class="value-display">
-          <span id="humDisplay">0</span>
-          <span class="unit">%</span>
+
+        <!-- Sensor Jarak (HC-SR04) -->
+        <div class="card">
+            <h3>Jarak Rintangan</h3>
+            <svg viewBox="0 0 36 36" class="circular-chart">
+                <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <path class="circle color-dist" id="circle-dist" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <text x="18" y="19" class="percentage" id="val-dist">0</text>
+                <text x="18" y="24" class="sensor-label">CM</text>
+            </svg>
+            <div id="status-dist" class="status-badge">Jalan Aman</div>
         </div>
-        <div class="status status-safe" id="humStatus">Normal</div>
-      </div>
-      
-      <!-- Gas Card -->
-      <div class="card">
-        <h2>💨 Gas (MQ-2)</h2>
-        <div class="gauge-container">
-          <div class="gauge" id="gasGauge" style="--value-deg: 0deg;">
-            <span class="gauge-value" id="gasValue">0</span>
-          </div>
-          <span class="gauge-label">Level</span>
-        </div>
-        <div class="value-display">
-          <span id="gasDisplay">0</span>
-        </div>
-        <div class="status status-safe" id="gasStatus">Aman</div>
-      </div>
-      
-      <!-- Distance Card -->
-      <div class="card">
-        <h2>📏 Jarak</h2>
-        <div class="gauge-container">
-          <div class="gauge" id="distGauge" style="--value-deg: 0deg;">
-            <span class="gauge-value" id="distValue">0</span>
-          </div>
-          <span class="gauge-label">cm</span>
-        </div>
-        <div class="value-display">
-          <span id="distDisplay">0</span>
-          <span class="unit">cm</span>
-        </div>
-        <div class="status status-safe" id="distStatus">Jelas</div>
-      </div>
     </div>
-    
-    <button class="refresh-btn" onclick="fetchData()">🔄 Refresh Data</button>
-    <div class="last-update" id="lastUpdate">Update terakhir: --</div>
-    
-    <div class="api-info">
-      <h3>📡 Setup API Endpoint</h3>
-      <p>Dashboard ini membutuhkan API endpoint untuk membaca data sensor ESP32. Buat file <code>data.json</code> di repository GitHub Anda dengan format:</p>
-      <pre style="background: #ffe6ea; padding: 15px; border-radius: 10px; overflow-x: auto; margin-top: 10px;">
-{
-  "temperature": 28.5,
-  "humidity": 65.2,
-  "gas": 1250,
-  "distance": 45.3
-}</pre>
-      <p style="margin-top: 15px;">Atau gunakan ESP32 web server dan ganti <code>API_URL</code> di JavaScript dengan alamat IP ESP32 Anda.</p>
-    </div>
-  </div>
-  
-  <script>
-    // KONFIGURASI API URL
-    // Ganti dengan URL ESP32 Anda atau file data.json
-    const API_URL = 'data.json'; // Gunakan 'http://IP_ESP32/data' untuk ESP32 langsung
-    
-    function updateGauge(elementId, value, maxValue) {
-      const gauge = document.getElementById(elementId);
-      const percentage = Math.min(value / maxValue, 1);
-      const degrees = percentage * 360;
-      gauge.style.setProperty('--value-deg', degrees + 'deg');
-    }
-    
-    function updateTemperatureStatus(value) {
-      const status = document.getElementById('tempStatus');
-      if (value <= 35) {
-        status.className = 'status status-safe';
-        status.textContent = 'Normal';
-      } else if (value <= 45) {
-        status.className = 'status status-warning';
-        status.textContent = 'Hangat';
-      } else {
-        status.className = 'status status-danger';
-        status.textContent = 'Panas!';
-      }
-    }
-    
-    function updateHumidityStatus(value) {
-      const status = document.getElementById('humStatus');
-      if (value <= 60) {
-        status.className = 'status status-safe';
-        status.textContent = 'Normal';
-      } else if (value <= 80) {
-        status.className = 'status status-warning';
-        status.textContent = 'Lembap';
-      } else {
-        status.className = 'status status-danger';
-        status.textContent = 'Basah!';
-      }
-    }
-    
-    function updateGasStatus(value) {
-      const status = document.getElementById('gasStatus');
-      if (value < 1000) {
-        status.className = 'status status-safe';
-        status.textContent = 'Aman';
-      } else if (value < 2000) {
-        status.className = 'status status-warning';
-        status.textContent = 'Waspada';
-      } else {
-        status.className = 'status status-danger';
-        status.textContent = 'Bahaya!';
-      }
-    }
-    
-    function updateDistanceStatus(value) {
-      const status = document.getElementById('distStatus');
-      if (value > 50) {
-        status.className = 'status status-safe';
-        status.textContent = 'Jelas';
-      } else if (value > 20) {
-        status.className = 'status status-warning';
-        status.textContent = 'Dekat';
-      } else {
-        status.className = 'status status-danger';
-        status.textContent = 'Hati-hati!';
-      }
-    }
-    
-    async function fetchData() {
-      const statusDiv = document.getElementById('connectionStatus');
-      
-      try {
-        const response = await fetch(API_URL);
+
+    <script>
+        // Data host dan autentikasi yang diberikan
+        const FIREBASE_URL = "https://rc-telementri-default-rtdb.asia-southeast1.firebasedatabase.app";
+        const FIREBASE_AUTH = "y4KdPtOZOokvMWl8qdZuSUpeOla0NAXgQsOW5a02";
         
-        if (!response.ok) {
-          throw new Error('HTTP error! status: ' + response.status);
+        // Path/node yang disasar dalam database (Asumsi ESP32 mengirim ke node '/monitoring')
+        const DB_PATH = "/monitoring.json"; 
+        
+        // URL lengkap dengan Auth
+        const streamUrl = `${FIREBASE_URL}${DB_PATH}?auth=${FIREBASE_AUTH}`;
+
+        // State variabel untuk menampung data sensor
+        let sensorData = { suhu: 0, kelembapan: 0, gas: 0, jarak: 0 };
+
+        // Inisialisasi EventSource untuk menerima update data Realtime via REST API
+        const eventSource = new EventSource(streamUrl);
+        const statusText = document.getElementById('conn-status');
+
+        eventSource.onopen = () => {
+            statusText.textContent = "Terhubung secara Real-Time";
+            statusText.style.backgroundColor = "#2ED573"; // Hijau
+        };
+
+        eventSource.onerror = (err) => {
+            console.error("EventSource failed:", err);
+            statusText.textContent = "Koneksi Terputus / Error";
+            statusText.style.backgroundColor = "#FF4757"; // Merah
+        };
+
+        eventSource.addEventListener('put', handleFirebaseData);
+        eventSource.addEventListener('patch', handleFirebaseData);
+
+        function handleFirebaseData(event) {
+            const payload = JSON.parse(event.data);
+            
+            if (payload.path === "/") {
+                if(payload.data) sensorData = { ...sensorData, ...payload.data };
+            } else {
+                const key = payload.path.substring(1); 
+                sensorData[key] = payload.data;
+            }
+            updateDashboard();
         }
-        
-        const data = await response.json();
-        
-        // Update connection status
-        statusDiv.className = 'connection-status connected';
-        statusDiv.textContent = '✅ Terhubung ke sensor';
-        
-        // Update temperature
-        document.getElementById('tempValue').textContent = data.temperature.toFixed(1);
-        document.getElementById('tempDisplay').textContent = data.temperature.toFixed(1);
-        updateGauge('tempGauge', data.temperature, 50);
-        updateTemperatureStatus(data.temperature);
-        
-        // Update humidity
-        document.getElementById('humValue').textContent = data.humidity.toFixed(1);
-        document.getElementById('humDisplay').textContent = data.humidity.toFixed(1);
-        updateGauge('humGauge', data.humidity, 100);
-        updateHumidityStatus(data.humidity);
-        
-        // Update gas
-        document.getElementById('gasValue').textContent = data.gas;
-        document.getElementById('gasDisplay').textContent = data.gas;
-        updateGauge('gasGauge', data.gas, 4095);
-        updateGasStatus(data.gas);
-        
-        // Update distance
-        document.getElementById('distValue').textContent = data.distance.toFixed(1);
-        document.getElementById('distDisplay').textContent = data.distance.toFixed(1);
-        updateGauge('distGauge', data.distance, 400);
-        updateDistanceStatus(data.distance);
-        
-        // Update timestamp
-        const now = new Date();
-        document.getElementById('lastUpdate').textContent = 
-          'Update terakhir: ' + now.toLocaleTimeString('id-ID', {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-          });
-          
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        statusDiv.className = 'connection-status disconnected';
-        statusDiv.textContent = '❌ Gagal terhubung: ' + error.message;
-      }
-    }
-    
-    // Auto refresh setiap 3 detik
-    setInterval(fetchData, 3000);
-    
-    // Fetch data saat halaman dimuat
-    fetchData();
-  </script>
+
+        // Fungsi pembaruan Indikator Visual (Gauges)
+        function updateGauge(idPrefix, value, min, max) {
+            let percentage = ((value - min) / (max - min)) * 100;
+            // Batasi persentase di angka 0 - 100
+            if (percentage > 100) percentage = 100;
+            if (percentage < 0) percentage = 0;
+
+            const circle = document.getElementById(`circle-${idPrefix}`);
+            const textVal = document.getElementById(`val-${idPrefix}`);
+            
+            circle.setAttribute('stroke-dasharray', `${percentage}, 100`);
+            textVal.textContent = parseFloat(value).toFixed(1).replace('.0', '');
+        }
+
+        // Fungsi evaluasi status sirkuit/sensor 
+        function updateDashboard() {
+            // Update DHT22 Suhu (Range Asumsi: 0 - 50 °C)
+            updateGauge('temp', sensorData.suhu || 0, 0, 50);
+            const badgeTemp = document.getElementById('status-temp');
+            if(sensorData.suhu > 35) {
+                badgeTemp.textContent = "Overheat!";
+                badgeTemp.className = "status-badge status-danger";
+            } else {
+                badgeTemp.textContent = "Suhu Aman";
+                badgeTemp.className = "status-badge";
+            }
+
+            // Update DHT22 Kelembapan (Range: 0 - 100 %)
+            updateGauge('hum', sensorData.kelembapan || 0, 0, 100);
+
+            // Update MQ-2 Gas/Smoke
+            // Range ESP32 Analog biasanya 0 - 4095. Menggunakan integrasi sirkuit alarm 
+            // kita dapat menyalakan peringatan bahaya saat melampaui batas ambang tertentu.
+            updateGauge('gas', sensorData.gas || 0, 0, 4095);
+            const badgeGas = document.getElementById('status-gas');
+            if((sensorData.gas || 0) > 1500) { 
+                badgeGas.textContent = "⚠️ Deteksi Gas/Asap!";
+                badgeGas.className = "status-badge status-danger";
+            } else {
+                badgeGas.textContent = "Udara Bersih";
+                badgeGas.className = "status-badge";
+            }
+
+            // Update HC-SR04 Jarak (Range Asumsi: 0 - 200 CM)
+            updateGauge('dist', sensorData.jarak || 0, 0, 200);
+            const badgeDist = document.getElementById('status-dist');
+            if((sensorData.jarak || 0) < 15 && (sensorData.jarak || 0) > 0) { 
+                badgeDist.textContent = "⚠️ Awas Tabrakan!";
+                badgeDist.className = "status-badge status-danger";
+            } else {
+                badgeDist.textContent = "Jalan Aman";
+                badgeDist.className = "status-badge";
+            }
+        }
+    </script>
 </body>
 </html>
