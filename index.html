@@ -1,1033 +1,311 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PinkSense • Realtime Telemetry Monitor</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Telemetri Mobil RC</title>
+    <style>
+        :root {
+            --bg-color: #FFF0F5; /* Lavender Blush - Soft Pink */
+            --card-bg: #FFFFFF;
+            --text-dark: #5D4037;
+            --pink-main: #FF69B4; /* Hot Pink */
+            --pink-light: #FFE4E1; /* Misty Rose */
+            --pink-dark: #D81B60;
+            --safe-color: #2ED573;
+            --danger-color: #FF4757;
+        }
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        body {
+            background-color: var(--bg-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text-dark);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
 
-<style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Quicksand:wght@500;600;700&display=swap');
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
 
-:root{
-  --bg:#fff7fb;
-  --card:rgba(255,255,255,.90);
-  --pink:#f47aaa;
-  --pink2:#ffb7d2;
-  --rose:#e85d93;
-  --lav:#b79bea;
-  --mint:#7bcfba;
-  --yellow:#f3bd65;
-  --blue:#77bfe4;
-  --text:#573f4c;
-  --muted:#9b7f8c;
-  --line:rgba(232,93,147,.13);
-  --shadow:0 18px 50px rgba(183,93,133,.12);
-}
+        .header h1 {
+            color: var(--pink-dark);
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
 
-*{box-sizing:border-box}
+        .header p {
+            color: var(--pink-main);
+            margin-top: 0;
+            font-weight: 500;
+        }
 
-html{
-  scroll-behavior:smooth;
-}
+        .connection-status {
+            display: inline-block;
+            padding: 5px 15px;
+            background-color: #FFA502;
+            color: white;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
 
-body{
-  margin:0;
-  min-height:100vh;
-  color:var(--text);
-  font-family:"DM Sans",sans-serif;
-  background:
-    radial-gradient(circle at 10% 10%,rgba(255,183,210,.35),transparent 30%),
-    radial-gradient(circle at 90% 20%,rgba(183,155,234,.20),transparent 28%),
-    linear-gradient(135deg,#fff7fb,#fffafd 55%,#fff4f9);
-  overflow-x:hidden;
-}
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 25px;
+            width: 100%;
+            max-width: 1000px;
+        }
 
-body:before{
-  content:"";
-  position:fixed;
-  inset:0;
-  pointer-events:none;
-  opacity:.35;
-  background-image:radial-gradient(#ef9db9 1px,transparent 1px);
-  background-size:24px 24px;
-  mask-image:linear-gradient(#000,transparent 75%);
-}
+        .card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 25px 20px;
+            box-shadow: 0 10px 25px rgba(255, 182, 193, 0.4);
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
 
-.shell{
-  width:min(1400px,calc(100% - 30px));
-  margin:auto;
-  padding:22px 0 35px;
-}
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(255, 182, 193, 0.6);
+        }
 
-header{
-  position:relative;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:20px;
-  padding:20px 24px;
-  margin-bottom:15px;
-  border:1px solid var(--line);
-  border-radius:28px;
-  background:var(--card);
-  backdrop-filter:blur(18px);
-  box-shadow:var(--shadow);
-}
+        .card h3 {
+            margin: 0 0 15px 0;
+            color: var(--pink-dark);
+            font-size: 1.2em;
+        }
 
-.brand{
-  display:flex;
-  align-items:center;
-  gap:15px;
-}
+        /* Desain Indikator Melingkar (SVG) */
+        .circular-chart {
+            display: block;
+            margin: 0 auto;
+            max-width: 80%;
+            max-height: 250px;
+        }
 
-.logo{
-  width:52px;
-  height:52px;
-  display:grid;
-  place-items:center;
-  border-radius:18px;
-  background:linear-gradient(145deg,#ff9fc3,#e983b0);
-  color:white;
-  font-size:25px;
-  box-shadow:0 10px 25px rgba(232,93,147,.24);
-  transform:rotate(-5deg);
-}
+        .circle-bg {
+            fill: none;
+            stroke: var(--pink-light);
+            stroke-width: 3.8;
+        }
 
-.eyebrow{
-  color:var(--rose);
-  font-size:10px;
-  font-weight:800;
-  letter-spacing:2.5px;
-}
+        .circle {
+            fill: none;
+            stroke-width: 2.8;
+            stroke-linecap: round;
+            transition: stroke-dasharray 0.8s ease-out, stroke 0.3s ease;
+        }
 
-h1{
-  margin:3px 0 0;
-  font:700 25px Quicksand,sans-serif;
-}
+        /* Warna spesifik tiap sensor */
+        .color-temp { stroke: #FF7675; } /* Merah pudar untuk suhu */
+        .color-hum { stroke: #74B9FF; }  /* Biru pudar untuk kelembapan */
+        .color-gas { stroke: var(--pink-main); }
+        .color-dist { stroke: #A29BFE; } /* Ungu untuk jarak */
 
-.subtitle{
-  color:var(--muted);
-  font-size:12px;
-  margin-top:3px;
-}
+        .percentage {
+            fill: var(--text-dark);
+            font-family: sans-serif;
+            font-size: 0.45em;
+            text-anchor: middle;
+            font-weight: bold;
+        }
 
-.operator{
-  text-align:right;
-  color:var(--muted);
-  font-size:11px;
-  line-height:1.7;
-}
+        .sensor-label {
+            fill: #999;
+            font-family: sans-serif;
+            font-size: 0.18em;
+            text-anchor: middle;
+        }
 
-.operator b{
-  color:var(--text);
-}
+        .status-badge {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 6px 15px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            font-weight: bold;
+            color: white;
+            background-color: var(--safe-color);
+            transition: background-color 0.3s ease;
+        }
 
-.status{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:12px;
-  margin-bottom:15px;
-  padding:13px 17px;
-  border:1px solid rgba(123,207,186,.3);
-  border-radius:18px;
-  background:rgba(255,255,255,.90);
-  box-shadow:var(--shadow);
-  transition:background .2s ease,border-color .2s ease;
-}
+        .status-danger {
+            background-color: var(--danger-color);
+            animation: pulse 1s infinite;
+        }
 
-.status-left{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  font-weight:700;
-  font-size:13px;
-}
-
-.dot{
-  width:10px;
-  height:10px;
-  border-radius:50%;
-  background:var(--mint);
-  box-shadow:0 0 0 5px rgba(123,207,186,.13),0 0 14px rgba(123,207,186,.7);
-}
-
-.status.danger{
-  border-color:rgba(232,93,147,.35);
-  background:#fff1f6;
-}
-
-.status.danger .dot{
-  background:var(--rose);
-  box-shadow:0 0 0 5px rgba(232,93,147,.12),0 0 16px rgba(232,93,147,.65);
-}
-
-.status small{
-  color:var(--muted);
-}
-
-#connection{
-  font-weight:700;
-}
-
-.metrics{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:13px;
-  margin-bottom:15px;
-}
-
-.metric{
-  position:relative;
-  overflow:hidden;
-  padding:18px;
-  border:1px solid var(--line);
-  border-radius:22px;
-  background:var(--card);
-  box-shadow:var(--shadow);
-  transition:transform .2s ease;
-}
-
-.metric:hover{
-  transform:translateY(-2px);
-}
-
-.metric:after{
-  content:"";
-  position:absolute;
-  width:110px;
-  height:110px;
-  right:-45px;
-  top:-45px;
-  border-radius:50%;
-  background:var(--accent);
-  filter:blur(28px);
-  opacity:.2;
-  pointer-events:none;
-}
-
-.metric-top{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  color:var(--muted);
-  font-size:11px;
-  font-weight:700;
-  letter-spacing:.5px;
-}
-
-.metric-icon{
-  color:var(--accent);
-  font-size:17px;
-}
-
-.value{
-  margin:8px 0 1px;
-  font:700 28px Quicksand,sans-serif;
-  color:var(--text);
-}
-
-.unit{
-  color:var(--muted);
-  font-size:11px;
-}
-
-.sensor-wheel{
-  width:12px;
-  height:12px;
-  border-radius:50%;
-  background:#dcd6db;
-  box-shadow:0 0 8px rgba(0,0,0,.1);
-  transition:transform .12s ease,box-shadow .12s ease,background .12s ease;
-  display:inline-block;
-}
-
-.sensor-wheel.active{
-  background:var(--accent);
-  box-shadow:0 0 12px var(--accent);
-}
-
-.sensor-wheel.flash{
-  transform:scale(1.35);
-}
-
-.gas{--accent:var(--rose)}
-.hum{--accent:var(--blue)}
-.temp{--accent:var(--yellow)}
-.dist{--accent:var(--mint)}
-.action{--accent:var(--lav)}
-.buzzer{--accent:var(--pink2)}
-
-.grid{
-  display:grid;
-  grid-template-columns:repeat(2,1fr);
-  gap:15px;
-}
-
-.card{
-  min-height:325px;
-  padding:17px;
-  border:1px solid var(--line);
-  border-radius:23px;
-  background:var(--card);
-  box-shadow:var(--shadow);
-  backdrop-filter:blur(16px);
-}
-
-.card-head{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  margin-bottom:6px;
-}
-
-.card-title{
-  font-weight:700;
-  font-size:13px;
-}
-
-.live{
-  color:var(--rose);
-  font-size:9px;
-  letter-spacing:1.5px;
-  font-weight:800;
-  background:#fff0f6;
-  padding:5px 8px;
-  border-radius:20px;
-}
-
-.chart-wrap{
-  height:255px;
-}
-
-canvas{
-  width:100%!important;
-  height:100%!important;
-}
-
-footer{
-  display:flex;
-  justify-content:space-between;
-  color:var(--muted);
-  font-size:10px;
-  padding:16px 4px 0;
-}
-
-@media(max-width:900px){
-  .metrics{grid-template-columns:repeat(2,1fr)}
-  .grid{grid-template-columns:1fr}
-  header{
-    align-items:flex-start;
-    flex-direction:column;
-  }
-  .operator{text-align:left}
-}
-
-@media(max-width:520px){
-  .shell{
-    width:calc(100% - 18px);
-    padding-top:10px;
-  }
-
-  .metrics{gap:8px}
-
-  .metric{padding:14px}
-
-  .value{font-size:20px}
-
-  .status{
-    align-items:flex-start;
-    flex-direction:column;
-  }
-
-  .card{min-height:300px}
-
-  .chart-wrap{height:230px}
-
-  footer{
-    flex-direction:column;
-    gap:5px;
-  }
-}
-</style>
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+    </style>
 </head>
-
 <body>
 
-<div class="shell">
-
-<header>
-  <div class="brand">
-    <div class="logo">♡</div>
-
-    <div>
-      <div class="eyebrow">PINKSENSE / REALTIME TELEMETRY</div>
-      <h1>Environmental & Radar Monitor</h1>
-      <div class="subtitle">
-        Cute dashboard • Firebase realtime • ultra-low render delay
-      </div>
-    </div>
-  </div>
-
-  <div class="operator">
-    OPERATOR <b>KELOMPOK 2 GACOR</b><br>
-    ID <b>ROBOTIKA</b> · CLASS <b>2TE1</b>
-  </div>
-</header>
-
-
-<section id="status" class="status">
-
-  <div class="status-left">
-    <span class="dot"></span>
-    <span id="statusText">Menghubungkan ke sensor...</span>
-  </div>
-
-  <small id="lastUpdate">Menunggu data realtime...</small>
-
-</section>
-
-
-<section class="metrics">
-
-  <div class="metric gas">
-    <div class="metric-top">
-      <span>MQ-2 GAS</span>
-      <div>
-        <span id="wheelGas" class="sensor-wheel"></span>
-        <span class="metric-icon">♡</span>
-      </div>
+    <div class="header">
+        <h1>Dashboard RC Car</h1>
+        <p>IoT Telemetry Monitor - ESP32</p>
+        <div id="conn-status" class="connection-status">Menghubungkan ke Firebase...</div>
     </div>
 
-    <div id="gasValue" class="value">—</div>
-    <div class="unit">ADC / 4095</div>
-  </div>
+    <div class="grid-container">
+        <!-- Sensor Suhu (DHT22) -->
+        <div class="card">
+            <h3>Suhu Lingkungan</h3>
+            <svg viewBox="0 0 36 36" class="circular-chart">
+                <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <path class="circle color-temp" id="circle-temp" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <text x="18" y="19" class="percentage" id="val-temp">0</text>
+                <text x="18" y="24" class="sensor-label">°C</text>
+            </svg>
+            <div id="status-temp" class="status-badge">Normal</div>
+        </div>
 
+        <!-- Sensor Kelembapan (DHT22) -->
+        <div class="card">
+            <h3>Kelembapan Udara</h3>
+            <svg viewBox="0 0 36 36" class="circular-chart">
+                <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <path class="circle color-hum" id="circle-hum" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <text x="18" y="19" class="percentage" id="val-hum">0</text>
+                <text x="18" y="24" class="sensor-label">%</text>
+            </svg>
+            <div id="status-hum" class="status-badge">Normal</div>
+        </div>
 
-  <div class="metric hum">
-    <div class="metric-top">
-      <span>HUMIDITY</span>
-      <div>
-        <span id="wheelHum" class="sensor-wheel"></span>
-        <span class="metric-icon">◌</span>
-      </div>
+        <!-- Sensor Gas (MQ-2) -->
+        <div class="card">
+            <h3>Kadar Gas / Asap (MQ-2)</h3>
+            <svg viewBox="0 0 36 36" class="circular-chart">
+                <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <path class="circle color-gas" id="circle-gas" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <text x="18" y="19" class="percentage" id="val-gas">0</text>
+                <text x="18" y="24" class="sensor-label">Raw (ESP32)</text>
+            </svg>
+            <div id="status-gas" class="status-badge">Udara Bersih</div>
+        </div>
+
+        <!-- Sensor Jarak (HC-SR04) -->
+        <div class="card">
+            <h3>Jarak Rintangan</h3>
+            <svg viewBox="0 0 36 36" class="circular-chart">
+                <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <path class="circle color-dist" id="circle-dist" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <text x="18" y="19" class="percentage" id="val-dist">0</text>
+                <text x="18" y="24" class="sensor-label">CM</text>
+            </svg>
+            <div id="status-dist" class="status-badge">Jalan Aman</div>
+        </div>
     </div>
 
-    <div id="humValue" class="value">—</div>
-    <div class="unit">% RH</div>
-  </div>
-
-
-  <div class="metric temp">
-    <div class="metric-top">
-      <span>TEMPERATURE</span>
-      <div>
-        <span id="wheelTemp" class="sensor-wheel"></span>
-        <span class="metric-icon">☼</span>
-      </div>
-    </div>
-
-    <div id="tempValue" class="value">—</div>
-    <div class="unit">°C</div>
-  </div>
-
-
-  <div class="metric dist">
-    <div class="metric-top">
-      <span>DISTANCE</span>
-      <div>
-        <span id="wheelDist" class="sensor-wheel"></span>
-        <span class="metric-icon">⌁</span>
-      </div>
-    </div>
-
-    <div id="distValue" class="value">—</div>
-    <div class="unit">cm (Radar)</div>
-  </div>
-
-
-  <div class="metric action">
-    <div class="metric-top">
-      <span>ROBOT ACTION</span>
-      <div>
-        <span id="wheelAction" class="sensor-wheel"></span>
-        <span class="metric-icon">🚀</span>
-      </div>
-    </div>
-
-    <div id="actionValue" class="value">—</div>
-    <div class="unit">Status Kemudi Otomatis</div>
-  </div>
-
-
-  <div class="metric buzzer">
-    <div class="metric-top">
-      <span>BUZZER ALARM</span>
-      <div>
-        <span id="wheelBuzzer" class="sensor-wheel"></span>
-        <span class="metric-icon">🔔</span>
-      </div>
-    </div>
-
-    <div id="buzzerValue" class="value">—</div>
-    <div class="unit">Sistem Peringatan</div>
-  </div>
-
-</section>
-
-
-<main class="grid">
-
-  <div class="card">
-    <div class="card-head">
-      <div class="card-title">♡ Kadar Gas · MQ-2</div>
-      <div class="live">● REALTIME</div>
-    </div>
-    <div class="chart-wrap">
-      <canvas id="gasChart"></canvas>
-    </div>
-  </div>
-
-
-  <div class="card">
-    <div class="card-head">
-      <div class="card-title">💧 Kelembapan</div>
-      <div class="live">● REALTIME</div>
-    </div>
-    <div class="chart-wrap">
-      <canvas id="humChart"></canvas>
-    </div>
-  </div>
-
-
-  <div class="card">
-    <div class="card-head">
-      <div class="card-title">☼ Suhu Ruang</div>
-      <div class="live">● REALTIME</div>
-    </div>
-    <div class="chart-wrap">
-      <canvas id="tempChart"></canvas>
-    </div>
-  </div>
-
-
-  <div class="card">
-    <div class="card-head">
-      <div class="card-title">⌁ Jarak Radar Ultrasonik</div>
-      <div class="live">● REALTIME</div>
-    </div>
-    <div class="chart-wrap">
-      <canvas id="distChart"></canvas>
-    </div>
-  </div>
-
-</main>
-
-
-<footer>
-  <span>Firebase Realtime Database · Direct Event Rendering</span>
-  <span id="connection">CONNECTING…</span>
-</footer>
-
-</div>
-
-
-<script type="module">
-
-/* =========================================================
-   FIREBASE
-========================================================= */
-
-import { initializeApp }
-from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-
-import {
-  getDatabase,
-  ref,
-  onValue
-}
-from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-
-
-const firebaseConfig = {
-  databaseURL:
-    "https://rc-telementri-default-rtdb.asia-southeast1.firebasedatabase.app"
-};
-
-
-const app = initializeApp(firebaseConfig);
-
-const db = getDatabase(app);
-
-
-/* =========================================================
-   CACHE ELEMENT HTML
-========================================================= */
-
-const $ = id => document.getElementById(id);
-
-const el = {
-
-  gas:$("gasValue"),
-  hum:$("humValue"),
-  temp:$("tempValue"),
-  dist:$("distValue"),
-
-  action:$("actionValue"),
-  buzzer:$("buzzerValue"),
-
-  status:$("status"),
-  statusText:$("statusText"),
-  lastUpdate:$("lastUpdate"),
-  connection:$("connection"),
-
-  wheelGas:$("wheelGas"),
-  wheelHum:$("wheelHum"),
-  wheelTemp:$("wheelTemp"),
-  wheelDist:$("wheelDist"),
-  wheelAction:$("wheelAction"),
-  wheelBuzzer:$("wheelBuzzer")
-};
-
-
-/* =========================================================
-   CHART SETTINGS
-========================================================= */
-
-const maxPoints = 15;
-
-Chart.defaults.color = "#9b7f8c";
-Chart.defaults.font.family = "DM Sans";
-Chart.defaults.font.size = 10;
-
-
-function createChart(id,label,color,max){
-
-  return new Chart($(id),{
-
-    type:"line",
-
-    data:{
-      labels:[],
-
-      datasets:[{
-
-        label:label,
-
-        data:[],
-
-        borderColor:color,
-
-        backgroundColor:color+"18",
-
-        borderWidth:2.5,
-
-        fill:true,
-
-        tension:.3,
-
-        pointRadius:0,
-
-        pointHoverRadius:5
-      }]
-    },
-
-    options:{
-
-      responsive:true,
-
-      maintainAspectRatio:false,
-
-      animation:false,
-
-      interaction:{
-        intersect:false,
-        mode:"index"
-      },
-
-      plugins:{
-
-        legend:{
-          display:false
-        },
-
-        tooltip:{
-          displayColors:false,
-          backgroundColor:"#573f4c",
-          padding:10,
-          cornerRadius:10
+    <script>
+        // Data host dan autentikasi yang diberikan
+        const FIREBASE_URL = "https://rc-telementri-default-rtdb.asia-southeast1.firebasedatabase.app";
+        const FIREBASE_AUTH = "y4KdPtOZOokvMWl8qdZuSUpeOla0NAXgQsOW5a02";
+        
+        // Path/node yang disasar dalam database (Asumsi ESP32 mengirim ke node '/monitoring')
+        const DB_PATH = "/monitoring.json"; 
+        
+        // URL lengkap dengan Auth
+        const streamUrl = `${FIREBASE_URL}${DB_PATH}?auth=${FIREBASE_AUTH}`;
+
+        // State variabel untuk menampung data sensor
+        let sensorData = { suhu: 0, kelembapan: 0, gas: 0, jarak: 0 };
+
+        // Inisialisasi EventSource untuk menerima update data Realtime via REST API
+        const eventSource = new EventSource(streamUrl);
+        const statusText = document.getElementById('conn-status');
+
+        eventSource.onopen = () => {
+            statusText.textContent = "Terhubung secara Real-Time";
+            statusText.style.backgroundColor = "#2ED573"; // Hijau
+        };
+
+        eventSource.onerror = (err) => {
+            console.error("EventSource failed:", err);
+            statusText.textContent = "Koneksi Terputus / Error";
+            statusText.style.backgroundColor = "#FF4757"; // Merah
+        };
+
+        eventSource.addEventListener('put', handleFirebaseData);
+        eventSource.addEventListener('patch', handleFirebaseData);
+
+        function handleFirebaseData(event) {
+            const payload = JSON.parse(event.data);
+            
+            if (payload.path === "/") {
+                if(payload.data) sensorData = { ...sensorData, ...payload.data };
+            } else {
+                const key = payload.path.substring(1); 
+                sensorData[key] = payload.data;
+            }
+            updateDashboard();
         }
-      },
 
-      scales:{
+        // Fungsi pembaruan Indikator Visual (Gauges)
+        function updateGauge(idPrefix, value, min, max) {
+            let percentage = ((value - min) / (max - min)) * 100;
+            // Batasi persentase di angka 0 - 100
+            if (percentage > 100) percentage = 100;
+            if (percentage < 0) percentage = 0;
 
-        y:{
-          min:0,
-          suggestedMax:max,
-
-          border:{
-            display:false
-          },
-
-          grid:{
-            color:"rgba(180,130,150,.10)"
-          }
-        },
-
-        x:{
-          border:{
-            display:false
-          },
-
-          grid:{
-            display:false
-          },
-
-          ticks:{
-            maxTicksLimit:6
-          }
+            const circle = document.getElementById(`circle-${idPrefix}`);
+            const textVal = document.getElementById(`val-${idPrefix}`);
+            
+            circle.setAttribute('stroke-dasharray', `${percentage}, 100`);
+            textVal.textContent = parseFloat(value).toFixed(1).replace('.0', '');
         }
-      }
-    }
-  });
-}
 
+        // Fungsi evaluasi status sirkuit/sensor 
+        function updateDashboard() {
+            // Update DHT22 Suhu (Range Asumsi: 0 - 50 °C)
+            updateGauge('temp', sensorData.suhu || 0, 0, 50);
+            const badgeTemp = document.getElementById('status-temp');
+            if(sensorData.suhu > 35) {
+                badgeTemp.textContent = "Overheat!";
+                badgeTemp.className = "status-badge status-danger";
+            } else {
+                badgeTemp.textContent = "Suhu Aman";
+                badgeTemp.className = "status-badge";
+            }
 
-/* =========================================================
-   CHARTS
-========================================================= */
+            // Update DHT22 Kelembapan (Range: 0 - 100 %)
+            updateGauge('hum', sensorData.kelembapan || 0, 0, 100);
 
-const gasChart =
-  createChart("gasChart","Gas","#e85d93",4095);
+            // Update MQ-2 Gas/Smoke
+            // Range ESP32 Analog biasanya 0 - 4095. Menggunakan integrasi sirkuit alarm 
+            // kita dapat menyalakan peringatan bahaya saat melampaui batas ambang tertentu.
+            updateGauge('gas', sensorData.gas || 0, 0, 4095);
+            const badgeGas = document.getElementById('status-gas');
+            if((sensorData.gas || 0) > 1500) { 
+                badgeGas.textContent = "⚠️ Deteksi Gas/Asap!";
+                badgeGas.className = "status-badge status-danger";
+            } else {
+                badgeGas.textContent = "Udara Bersih";
+                badgeGas.className = "status-badge";
+            }
 
-const humChart =
-  createChart("humChart","Humidity","#77bfe4",100);
-
-const tempChart =
-  createChart("tempChart","Temperature","#f3bd65",50);
-
-const distChart =
-  createChart("distChart","Distance","#7bcfba",200);
-
-
-/* =========================================================
-   TEXT UPDATE
-========================================================= */
-
-function setText(element,value,decimal=0){
-
-  const number = Number(value);
-
-  element.textContent =
-    Number.isFinite(number)
-      ? number.toFixed(decimal)
-      : "—";
-}
-
-
-/* =========================================================
-   CHART UPDATE
-========================================================= */
-
-function addPoint(chart,value,label){
-
-  chart.data.labels.push(label);
-
-  chart.data.datasets[0].data.push(value);
-
-  if(chart.data.labels.length > maxPoints){
-
-    chart.data.labels.shift();
-
-    chart.data.datasets[0].data.shift();
-  }
-
-  chart.update("none");
-}
-
-
-/* =========================================================
-   SENSOR WHEEL FLASH
-========================================================= */
-
-function flashWheel(wheel){
-
-  wheel.classList.add("active");
-  wheel.classList.add("flash");
-
-  requestAnimationFrame(()=>{
-
-    requestAnimationFrame(()=>{
-
-      wheel.classList.remove("flash");
-
-    });
-
-  });
-}
-
-
-/* =========================================================
-   REALTIME SENSOR LISTENER
-========================================================= */
-
-// PERUBAHAN: Menyesuaikan dengan path JSON pada ESP32 (sebelumnya "Sensor")
-const sensorRef = ref(db,"monitoring"); 
-
-
-onValue(
-
-  sensorRef,
-
-  snapshot => {
-
-    const data = snapshot.val();
-
-    if(!data) return;
-
-
-    /* -----------------------------------------------------
-       SENSOR
-    ----------------------------------------------------- */
-
-    // PERUBAHAN: Menyesuaikan dengan penulisan huruf kecil di JSON
-    const gas =
-      Number(data.gas) || 0;
-
-    const hum =
-      Number(data.kelembapan) || 0;
-
-    const temp =
-      Number(data.suhu) || 0;
-
-    const dist =
-      Number(data.jarak) || 0;
-
-
-    /* -----------------------------------------------------
-       TIME
-    ----------------------------------------------------- */
-
-    const now = new Date();
-
-    const time =
-      now.toLocaleTimeString(
-        "id-ID",
-        {
-          hour12:false
+            // Update HC-SR04 Jarak (Range Asumsi: 0 - 200 CM)
+            updateGauge('dist', sensorData.jarak || 0, 0, 200);
+            const badgeDist = document.getElementById('status-dist');
+            if((sensorData.jarak || 0) < 15 && (sensorData.jarak || 0) > 0) { 
+                badgeDist.textContent = "⚠️ Awas Tabrakan!";
+                badgeDist.className = "status-badge status-danger";
+            } else {
+                badgeDist.textContent = "Jalan Aman";
+                badgeDist.className = "status-badge";
+            }
         }
-      );
-
-
-    /* -----------------------------------------------------
-       DISPLAY
-    ----------------------------------------------------- */
-
-    setText(
-      el.gas,
-      gas
-    );
-
-    setText(
-      el.hum,
-      hum,
-      1
-    );
-
-    setText(
-      el.temp,
-      temp,
-      1
-    );
-
-    setText(
-      el.dist,
-      dist,
-      1
-    );
-
-
-    /* -----------------------------------------------------
-       CHART
-    ----------------------------------------------------- */
-
-    addPoint(
-      gasChart,
-      gas,
-      time
-    );
-
-    addPoint(
-      humChart,
-      hum,
-      time
-    );
-
-    addPoint(
-      tempChart,
-      temp,
-      time
-    );
-
-    addPoint(
-      distChart,
-      dist,
-      time
-    );
-
-
-    /* -----------------------------------------------------
-       ALARM
-    ----------------------------------------------------- */
-
-    const alarm =
-      gas > 2000 ||
-      hum > 80;
-
-
-    el.status.classList.toggle(
-      "danger",
-      alarm
-    );
-
-
-    if(alarm){
-
-      el.statusText.textContent =
-        "⚠ WARNING · THRESHOLD EXCEEDED";
-
-      el.buzzer.textContent =
-        "MENYALA";
-
-      el.buzzer.style.color =
-        "var(--rose)";
-
-    }else{
-
-      el.statusText.textContent =
-        "♡ SYSTEM ONLINE · REALTIME";
-
-      el.buzzer.textContent =
-        "STANDBY";
-
-      el.buzzer.style.color =
-        "var(--text)";
-    }
-
-
-    /* -----------------------------------------------------
-       OBSTACLE
-    ----------------------------------------------------- */
-
-    const isObstacle =
-      dist > 0 &&
-      dist < 25;
-
-
-    if(isObstacle){
-
-      el.action.textContent =
-        "MENGHINDAR";
-
-      el.action.style.color =
-        "var(--rose)";
-
-    }else{
-
-      el.action.textContent =
-        "MAJU (AMAN)";
-
-      el.action.style.color =
-        "var(--text)";
-    }
-
-
-    /* -----------------------------------------------------
-       SENSOR WHEELS
-    ----------------------------------------------------- */
-
-    flashWheel(el.wheelGas);
-    flashWheel(el.wheelHum);
-    flashWheel(el.wheelTemp);
-    flashWheel(el.wheelDist);
-
-    el.wheelAction.classList.toggle(
-      "active",
-      isObstacle
-    );
-
-    el.wheelBuzzer.classList.toggle(
-      "active",
-      alarm
-    );
-
-
-    /* -----------------------------------------------------
-       UPDATE TIME
-    ----------------------------------------------------- */
-
-    el.lastUpdate.textContent =
-      "⚡ Realtime " + time;
-  },
-
-
-  /* -------------------------------------------------------
-     FIREBASE ERROR
-  ------------------------------------------------------- */
-
-  error => {
-
-    el.statusText.textContent =
-      "Koneksi sensor bermasalah";
-
-    el.connection.textContent =
-      "CONNECTION ERROR";
-
-    console.error(
-      "Firebase:",
-      error
-    );
-  }
-
-);
-
-
-/* =========================================================
-   FIREBASE CONNECTION
-========================================================= */
-
-const connectedRef =
-  ref(db,".info/connected");
-
-
-onValue(
-
-  connectedRef,
-
-  snapshot => {
-
-    const online =
-      snapshot.val() === true;
-
-
-    if(online){
-
-      el.connection.textContent =
-        "● FIREBASE CONNECTED · REALTIME";
-
-    }else{
-
-      el.connection.textContent =
-        "○ FIREBASE OFFLINE";
-    }
-
-  }
-
-);
-
-</script>
-
+    </script>
 </body>
 </html>
