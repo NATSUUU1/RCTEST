@@ -1,7 +1,13 @@
+#define BLYNK_TEMPLATE_ID "TMPL6WgUGGibf"
+#define BLYNK_TEMPLATE_NAME "RC AUTOMATION"
+#define BLYNK_AUTH_TOKEN "bg7SOJUwfndrGmrz4HgHKYc_MAakVX5H"
+
 #include <WiFi.h>
+#include <WiFiClient.h>
 #include <FirebaseESP32.h>
 #include <DHT.h>
 #include <ESP32Servo.h>
+#include <BlynkSimpleEsp32.h>
 
 // ================= PENGATURAN WI-FI & FIREBASE =================
 const char* ssid = "Kjiwonn";         
@@ -125,10 +131,46 @@ void hindariRintangan() {
   delay(200);
 }
 
+BlynkTimer timer;
+
+const int relayPin = 2;       // Pin output untuk Power Switch
+const int thermistorPin = 34; // Pin analog (ADC) untuk NTC Thermistor
+const int mq2Pin = 36;        // Pin analog (ADC) untuk sensor MQ-2
+
+// =========================================================================
+// FUNGSI PENGIRIMAN DATA SENSOR KE BLYNK
+// =========================================================================
+void sendSensorData() {
+  // A. Data Jaringan dan Sistem
+  Blynk.virtualWrite(V1, WiFi.RSSI());               // V1: WiFi Signal Strength (dBm)
+  Blynk.virtualWrite(V2, millis() / 1000);           // V2: Uptime (detik)
+  Blynk.virtualWrite(V6, WiFi.localIP().toString()); // V6: IP Address
+  
+  // B. Data Pembacaan NTC Thermistor
+  int thermistorValue = analogRead(thermistorPin);
+  // (Rumus dasar pemetaan ADC ke Suhu Fahrenheit - sesuaikan dengan kalibrasi komponen Anda)
+  float tempFahrenheit = map(thermistorValue, 0, 4095, 32, 212); 
+  Blynk.virtualWrite(V8, tempFahrenheit);            // V8: Temperature (°F)
+
+  // C. Data Pembacaan Sensor Gas/Asap MQ-2
+  int mq2Value = analogRead(mq2Pin);
+  // (Rumus dasar pemetaan ADC ke AQI dan ppm - sesuaikan dengan kalibrasi komponen Anda)
+  float airPollutionAQI = map(mq2Value, 0, 4095, 0, 500); 
+  float co2PPM = map(mq2Value, 0, 4095, 400, 5000);
+  
+  Blynk.virtualWrite(V7, airPollutionAQI);           // V7: Air Pollution (AQI)
+  Blynk.virtualWrite(V10, co2PPM);                   // V10: CO2 (ppm)
+
+  /* 
+   * Catatan: Datastream seluler (V3, V4, V5) diabaikan 
+   * karena koneksi menggunakan WiFi ESP32, bukan modul GSM/Cellular.
+   */
+}
+
 // ================= SETUP =================
 void setup() {
   Serial.begin(115200);
-  
+
   pinMode(BUZZER_PIN, OUTPUT);
   pinMode(TRIG_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
@@ -153,6 +195,8 @@ void setup() {
   
   Firebase.begin(&config, &auth);
   Firebase.reconnectWiFi(true);
+
+  Blynk.begin("bg7SOJUwfndrGmrz4HgHKYc_MAakVX5H", "Tomoro Coffe Grand City", "Seeyoutomoro");
 }
 
 // ================= LOOP UTAMA =================
@@ -222,5 +266,7 @@ void loop() {
   } else {
     digitalWrite(BUZZER_PIN, LOW);
     buzzerState = LOW;
+
+  Blynk.run();
   }
 }
